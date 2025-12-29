@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Promptle - Le Jeu de Lettres IA</title>
+    <!-- Tailwind CSS pour le style -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- React et Babel pour faire tourner le code dans le navigateur -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://unpkg.com/lucide-react@latest"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #020617; }
+        .grid-letter { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useCallback } = React;
+        const { Sparkles, Share2, Info, Trophy, AlertCircle, Delete, CornerDownLeft, Loader2 } = lucide;
+
+        const WORD_LENGTH = 6;
+        const MAX_ATTEMPTS = 6;
+        const TARGET_WORD = "PROMPT";
+        const DAILY_IMAGE = "https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&q=80&w=800";
+
+        const KEYBOARD_ROWS = [
+            ['A', 'Z', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],
+            ['Q', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', 'M'],
+            ['ENTER', 'W', 'X', 'C', 'V', 'B', 'N', 'DELETE']
+        ];
+
+        function App() {
+            const [guesses, setGuesses] = useState(Array(MAX_ATTEMPTS).fill(''));
+            const [currentGuess, setCurrentGuess] = useState('');
+            const [attempts, setAttempts] = useState(0);
+            const [gameState, setGameState] = useState('playing');
+            const [message, setMessage] = useState('');
+            const [usedLetters, setUsedLetters] = useState({});
+
+            const submitGuess = useCallback(() => {
+                if (gameState !== 'playing') return;
+                if (currentGuess.length !== WORD_LENGTH) {
+                    setMessage("Mot trop court...");
+                    setTimeout(() => setMessage(''), 2000);
+                    return;
+                }
+
+                const newGuesses = [...guesses];
+                newGuesses[attempts] = currentGuess;
+                setGuesses(newGuesses);
+
+                const newUsedLetters = { ...usedLetters };
+                currentGuess.split('').forEach((letter, i) => {
+                    if (TARGET_WORD[i] === letter) newUsedLetters[letter] = 'correct';
+                    else if (TARGET_WORD.includes(letter) && newUsedLetters[letter] !== 'correct') newUsedLetters[letter] = 'present';
+                    else if (!TARGET_WORD.includes(letter) && !newUsedLetters[letter]) newUsedLetters[letter] = 'absent';
+                });
+                setUsedLetters(newUsedLetters);
+
+                if (currentGuess === TARGET_WORD) {
+                    setGameState('won');
+                    setMessage("Aura purifiée !");
+                } else if (attempts + 1 >= MAX_ATTEMPTS) {
+                    setGameState('lost');
+                    setMessage(`Le mot était : ${TARGET_WORD}`);
+                } else {
+                    setAttempts(prev => prev + 1);
+                    setCurrentGuess('');
+                }
+            }, [currentGuess, attempts, gameState, guesses, usedLetters]);
+
+            const handleInput = useCallback((key) => {
+                if (gameState !== 'playing') return;
+                if (key === 'ENTER') submitGuess();
+                else if (key === 'DELETE' || key === 'Backspace') setCurrentGuess(prev => prev.slice(0, -1));
+                else if (/^[a-zA-Z]$/.test(key) && currentGuess.length < WORD_LENGTH) setCurrentGuess(prev => (prev + key).toUpperCase());
+            }, [currentGuess, gameState, submitGuess]);
+
+            useEffect(() => {
+                const onKeyDown = (e) => handleInput(e.key === 'Enter' ? 'ENTER' : e.key === 'Backspace' ? 'DELETE' : e.key);
+                window.addEventListener('keydown', onKeyDown);
+                return () => window.removeEventListener('keydown', onKeyDown);
+            }, [handleInput]);
+
+            const getLetterStyle = (guess, index, isCurrent) => {
+                if (isCurrent) return "border-slate-500 bg-slate-800 text-white";
+                if (!guess) return "border-slate-800 bg-slate-900/40 text-transparent";
+                const letter = guess[index];
+                if (TARGET_WORD[index] === letter) return "bg-violet-600 border-violet-400 text-white shadow-[0_0_15px_rgba(139,92,246,0.3)]";
+                if (TARGET_WORD.includes(letter)) return "bg-cyan-600 border-cyan-400 text-white";
+                return "bg-slate-800 border-slate-700 text-slate-600 opacity-50";
+            };
+
+            const getKeyStyle = (key) => {
+                const status = usedLetters[key];
+                if (status === 'correct') return "bg-violet-600 text-white";
+                if (status === 'present') return "bg-cyan-600 text-white";
+                if (status === 'absent') return "bg-slate-950 text-slate-800 opacity-40";
+                return "bg-slate-800 text-slate-200 hover:bg-slate-700";
+            };
+
+            return (
+                <div className="min-h-screen text-slate-100 flex flex-col items-center select-none overflow-x-hidden p-4">
+                    <header className="w-full max-w-lg flex justify-between items-center p-4 mb-4 border-b border-slate-800/50">
+                        <div className="flex items-center gap-3">
+                            <div className="bg-gradient-to-br from-violet-600 to-cyan-500 p-2 rounded-xl">
+                                <i data-lucide="sparkles" className="text-white w-5 h-5"></i>
+                            </div>
+                            <h1 className="text-xl font-black tracking-widest text-white uppercase italic">Promptle</h1>
+                        </div>
+                    </header>
+
+                    <main className="w-full max-w-md flex flex-col gap-4">
+                        <div className="relative rounded-3xl overflow-hidden border border-slate-800 bg-slate-900 shadow-2xl">
+                            <img src={DAILY_IMAGE} className={`w-full aspect-video object-cover transition-all duration-1000 ${gameState === 'playing' ? 'blur-2xl grayscale scale-110' : 'blur-none grayscale-0 scale-100'}`} />
+                            <div className="absolute inset-0 bg-gradient-to-t from-slate-950 to-transparent"></div>
+                        </div>
+
+                        <div className="h-6 text-center text-[10px] font-bold text-violet-400 uppercase tracking-widest">{message}</div>
+
+                        <div className="flex flex-col gap-2">
+                            {guesses.map((guess, i) => (
+                                <div key={i} className="flex justify-center gap-1.5">
+                                    {Array.from({ length: WORD_LENGTH }).map((_, j) => (
+                                        <div key={j} className={`w-11 h-11 md:w-14 md:h-14 border-2 rounded-xl flex items-center justify-center text-xl font-black ${getLetterStyle(guess, j, i === attempts)}`}>
+                                            {(i === attempts ? currentGuess[j] : guess[j]) || ''}
+                                        </div>
+                                    ))}
+                                </div>
+                            ))}
+                        </div>
+
+                        <div className="mt-4 flex flex-col gap-1.5">
+                            {KEYBOARD_ROWS.map((row, i) => (
+                                <div key={i} className="flex justify-center gap-1">
+                                    {row.map(key => (
+                                        <button key={key} onClick={() => handleInput(key)} className={`h-12 rounded-lg font-bold text-[10px] transition-all active:scale-95 ${key.length > 1 ? 'px-3 bg-slate-700 min-w-[55px]' : `w-8 md:w-10 ${getKeyStyle(key)}`}`}>
+                                            {key}
+                                        </button>
+                                    ))}
+                                </div>
+                            ))}
+                        </div>
+                    </main>
+
+                    {gameState !== 'playing' && (
+                        <div className="fixed inset-0 bg-slate-950/95 flex items-center justify-center p-6 z-50">
+                            <div className="bg-slate-900 border border-slate-800 p-8 rounded-[2.5rem] text-center max-w-xs w-full shadow-2xl">
+                                <h2 className="text-2xl font-black mb-1 uppercase tracking-tighter italic text-white">
+                                    {gameState === 'won' ? 'Prompt Décrypté' : 'Signal Perdu'}
+                                </h2>
+                                <p className="text-slate-500 mb-8 text-[11px] font-medium tracking-widest uppercase">Mot : {TARGET_WORD}</p>
+                                <button className="w-full py-4 bg-white text-slate-950 rounded-2xl font-black shadow-xl" onClick={() => window.location.reload()}>REJOUER</button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+
+        // Initialise les icônes après le rendu
+        setTimeout(() => lucide.createIcons(), 100);
+    </script>
+</body>
+</html>
