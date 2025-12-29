@@ -11,49 +11,136 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
+    <!-- Configuration Tailwind pour le style futuriste -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Space Grotesk"', 'sans-serif'],
+                    },
+                    colors: {
+                        cyber: {
+                            violet: '#8B5CF6',
+                            cyan: '#06B6D4',
+                            dark: '#020617',
+                            darker: '#0B1121',
+                        }
+                    },
+                    boxShadow: {
+                        'neon-violet': '0 0 15px rgba(139,92,246,0.5), 0 0 30px rgba(139,92,246,0.3)',
+                        'neon-cyan': '0 0 15px rgba(6,182,212,0.5), 0 0 30px rgba(6,182,212,0.3)',
+                        'glass': '0 8px 32px 0 rgba(31, 38, 135, 0.37)',
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'glitch': 'glitch 2s infinite',
+                        'scan': 'scan 4s linear infinite',
+                    },
+                    keyframes: {
+                        glitch: {
+                            '0%': { transform: 'translate(0)' },
+                            '20%': { transform: 'translate(-2px, 2px)' },
+                            '40%': { transform: 'translate(-2px, -2px)' },
+                            '60%': { transform: 'translate(2px, 2px)' },
+                            '80%': { transform: 'translate(2px, -2px)' },
+                            '100%': { transform: 'translate(0)' },
+                        },
+                        scan: {
+                            '0%': { backgroundPosition: '0 0' },
+                            '100%': { backgroundPosition: '0 100%' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        /* Import de la nouvelle police Space Grotesk */
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;500;700&display=swap');
+
         body {
-            font-family: 'Inter', sans-serif;
+            font-family: 'Space Grotesk', sans-serif;
             background-color: #020617;
+            background-image:
+                radial-gradient(circle at 50% 0%, rgba(139, 92, 246, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 100% 100%, rgba(6, 182, 212, 0.15) 0%, transparent 50%),
+                linear-gradient(to bottom, #020617, #0B1121);
             margin: 0;
             padding: 0;
             color: #f1f5f9;
+            min-height: 100vh;
+        }
+
+        /* Effet de grille subtil en arrière-plan */
+        .bg-grid {
+            background-size: 50px 50px;
+            background-image:
+                linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+            mask-image: radial-gradient(circle at center, black 40%, transparent 100%);
+        }
+
+        /* Style "Glassmorphism" pour les conteneurs */
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        /* Effet de scanline sur l'image */
+        .scanlines::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                to bottom,
+                transparent 50%,
+                rgba(0, 0, 0, 0.2) 51%
+            );
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 2;
         }
     </style>
 </head>
-<body>
+<body class="bg-grid overflow-x-hidden">
     <div id="root"></div>
 
     <script type="text/babel">
         const { useState, useEffect, useCallback } = React;
 
         // --- COMPOSANTS ICONES (SVG INTERNES) ---
-        // Plus de dépendance externe capricieuse. On définit les SVG directement ici.
         const Icons = {
-            Sparkles: () => (
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>
+            Sparkles: ({ className = "" }) => (
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>
             ),
             Trophy: ({ size = 20, className = "" }) => (
                 <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
             ),
-            Share2: () => (
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+            Share2: ({ className = "" }) => (
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
             ),
-            Info: () => (
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            Info: ({ className = "" }) => (
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
             ),
-            Delete: () => (
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 5H9l-7 7 7 7h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Z"/><line x1="18" y1="9" x2="12" y2="15"/><line x1="12" y1="9" x2="18" y2="15"/></svg>
+            Delete: ({ className = "" }) => (
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M20 5H9l-7 7 7 7h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Z"/><line x1="18" y1="9" x2="12" y2="15"/><line x1="12" y1="9" x2="18" y2="15"/></svg>
             ),
-            CornerDownLeft: () => (
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 10 4 15 9 20"/><path d="M20 4v7a4 4 0 0 1-4 4H4"/></svg>
+            CornerDownLeft: ({ className = "" }) => (
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="9 10 4 15 9 20"/><path d="M20 4v7a4 4 0 0 1-4 4H4"/></svg>
             ),
             Loader2: ({ size = 48, className = "" }) => (
                 <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`animate-spin ${className}`}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
             ),
-            Database: () => (
-                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/></svg>
+            Database: ({ className = "" }) => (
+                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/></svg>
             )
         };
 
@@ -61,15 +148,11 @@
         // 🛠️ CONFIGURATION SUPABASE (REMPLACE LES VALEURS CI-DESSOUS)
         // =========================================================
 
-        // 1. Colle ici ton "Project URL" trouvé dans Settings > API
         const SUPABASE_URL = "https://jxbtymcfsqxshmvanrbr.supabase.co";
-
-        // 2. Colle ici ta clé "anon / public"
         const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp4YnR5bWNmc3F4c2htdmFucmJyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcwMjAxMzUsImV4cCI6MjA4MjU5NjEzNX0.5hjR_k9Mz3SElQgqiLiHOwqgespnKmvm05X4IuQStfI";
 
         // Initialisation sécurisée
         let supabaseClient = null;
-        // On vérifie simplement si les clés ont été changées par rapport au placeholder
         const isConfigured = SUPABASE_URL.includes("supabase.co");
 
         if (isConfigured) {
@@ -105,7 +188,6 @@
 
                 async function fetchTodayChallenge() {
                     try {
-                        // Récupère la date au format YYYY-MM-DD
                         const today = new Date().toISOString().split('T')[0];
 
                         const { data, error } = await supabaseClient
@@ -118,15 +200,12 @@
                             setTargetWord(data.word.toUpperCase());
                             setDailyImage(data.image_url);
                         } else {
-                            // Si aucun mot en base, on met un mot par défaut pour ne pas casser le jeu
-                            console.log("Pas de mot pour aujourd'hui en DB, utilisation défaut.");
                             setTargetWord("PROMPT");
                             setDailyImage("https://images.unsplash.com/photo-1677442136019-21780ecad995");
                         }
                     } catch (err) {
                         console.error("Erreur Supabase:", err);
                         setMessage("Erreur de connexion");
-                        // Fallback en cas d'erreur critique
                         setTargetWord("PROMPT");
                         setDailyImage("https://images.unsplash.com/photo-1677442136019-21780ecad995");
                     } finally {
@@ -141,7 +220,7 @@
 
                 const currentLength = targetWord.length || 6;
                 if (currentGuess.length !== currentLength) {
-                    setMessage(`Besoin de ${currentLength} lettres`);
+                    setMessage(`Requiert ${currentLength} unités`);
                     setTimeout(() => setMessage(''), 2000);
                     return;
                 }
@@ -164,10 +243,10 @@
 
                 if (currentGuess === targetWord) {
                     setGameState('won');
-                    setMessage("Aura purifiée !");
+                    setMessage("Système purifié !");
                 } else if (attempts + 1 >= MAX_ATTEMPTS) {
                     setGameState('lost');
-                    setMessage(`Le mot était : ${targetWord}`);
+                    setMessage(`Échec. Cible : ${targetWord}`);
                 } else {
                     setAttempts(prev => prev + 1);
                     setCurrentGuess('');
@@ -197,35 +276,45 @@
             }, [handleInput]);
 
             const getLetterStyle = (guess, index, isCurrent) => {
-                if (isCurrent) return "border-slate-500 bg-slate-800 text-white scale-105 shadow-sm";
-                if (!guess) return "border-slate-800 bg-slate-900/40 text-transparent";
+                // Style des lettres en cours de saisie
+                if (isCurrent) return "border-cyber-violet/50 bg-cyber-darker/80 text-white scale-105 shadow-neon-violet/20 backdrop-blur-sm";
+                // Style des cases vides
+                if (!guess) return "border-cyber-darker bg-cyber-darker/30 text-transparent";
+
                 const letter = guess[index];
-                if (targetWord[index] === letter) return "bg-violet-600 border-violet-400 text-white shadow-[0_0_15px_rgba(139,92,246,0.3)]";
-                if (targetWord.includes(letter)) return "bg-cyan-600 border-cyan-400 text-white shadow-[0_0_10px_rgba(6,182,212,0.2)]";
-                return "bg-slate-800 border-slate-700 text-slate-600 opacity-50";
+                // Lettre correcte (Violet Néon)
+                if (targetWord[index] === letter) return "bg-cyber-violet border-cyber-violet text-white shadow-neon-violet";
+                // Lettre présente (Cyan Néon)
+                if (targetWord.includes(letter)) return "bg-cyber-cyan border-cyber-cyan text-white shadow-neon-cyan";
+                // Lettre absente (Sombre)
+                return "bg-cyber-darker/80 border-cyber-darker text-slate-600 opacity-50";
             };
 
             const getKeyStyle = (key) => {
                 const status = usedLetters[key];
-                if (status === 'correct') return "bg-violet-600 text-white";
-                if (status === 'present') return "bg-cyan-600 text-white";
-                if (status === 'absent') return "bg-slate-950 text-slate-800 opacity-40";
-                return "bg-slate-800 text-slate-200 hover:bg-slate-700";
+                // Touche correcte
+                if (status === 'correct') return "bg-cyber-violet text-white shadow-neon-violet/50 border-cyber-violet";
+                // Touche présente
+                if (status === 'present') return "bg-cyber-cyan text-white shadow-neon-cyan/50 border-cyber-cyan";
+                // Touche absente
+                if (status === 'absent') return "bg-cyber-darker/90 text-slate-700 border-cyber-darker/50";
+                // Touche par défaut
+                return "bg-cyber-darker/50 text-slate-300 border-slate-800/50 hover:bg-slate-800 hover:border-cyber-violet/50 hover:text-white hover:shadow-neon-violet/20";
             };
 
             // Écran d'aide si les clés sont manquantes
             if (!isConfigured) {
                 return (
-                    <div className="min-h-screen bg-[#020617] flex flex-col items-center justify-center p-6 text-center">
-                        <div className="bg-slate-900 border border-slate-800 p-8 rounded-[2rem] max-w-sm shadow-2xl">
-                            <div className="flex justify-center mb-4 text-violet-500">
+                    <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center relative z-10">
+                        <div className="glass-panel p-8 rounded-[2rem] max-w-sm shadow-2xl border-cyber-violet/20">
+                            <div className="flex justify-center mb-4 text-cyber-violet animate-pulse-slow">
                                 <Icons.Database />
                             </div>
-                            <h2 className="text-xl font-black mb-4 uppercase italic tracking-tighter">Configuration Requise</h2>
+                            <h2 className="text-xl font-black mb-4 uppercase tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-cyber-violet to-cyber-cyan animate-glitch">Initialisation Requise</h2>
                             <p className="text-slate-400 text-sm mb-6 leading-relaxed">
-                                Pour activer <strong>Promptle</strong>, tu dois coller tes clés Supabase dans le fichier <code className="text-violet-400 bg-slate-950 px-1 rounded text-xs">index.html</code> (lignes 63 et 64).
+                                Pour activer le protocole <strong>Promptle</strong>, injectez vos clés d'accès Supabase dans le fichier <code className="text-cyber-cyan bg-cyber-darker px-1 rounded text-xs border border-cyber-cyan/30">index.html</code> (lignes 100 et 101).
                             </p>
-                            <div className="text-left bg-slate-950 p-3 rounded-lg text-[10px] font-mono text-slate-500 overflow-hidden">
+                            <div className="text-left bg-cyber-darker/80 p-3 rounded-lg text-[10px] font-mono text-cyber-cyan/70 overflow-hidden border border-cyber-violet/20">
                                 const SUPABASE_URL = "https://...";<br/>
                                 const SUPABASE_ANON_KEY = "eyJh...";
                             </div>
@@ -236,9 +325,9 @@
 
             if (isLoading) {
                 return (
-                    <div className="min-h-screen bg-[#020617] flex flex-col items-center justify-center">
-                        <Icons.Loader2 className="text-violet-500 mb-4" />
-                        <p className="text-[10px] font-black tracking-widest text-slate-500 uppercase italic">Recherche du signal...</p>
+                    <div className="min-h-screen flex flex-col items-center justify-center relative z-10">
+                        <Icons.Loader2 className="text-cyber-violet mb-4 animate-spin shadow-neon-violet" size={64} />
+                        <p className="text-xs font-black tracking-[0.3em] text-cyber-cyan uppercase animate-pulse">Synchronisation du flux neural...</p>
                     </div>
                 );
             }
@@ -246,44 +335,47 @@
             const currentLength = targetWord.length || 6;
 
             return (
-                <div className="min-h-screen text-slate-100 flex flex-col items-center select-none overflow-x-hidden p-4">
-                    <header className="w-full max-w-lg flex justify-between items-center p-4 mb-4 border-b border-slate-800/50 backdrop-blur-md sticky top-0 z-10">
-                        <div className="flex items-center gap-3">
-                            <div className="bg-gradient-to-br from-violet-600 to-cyan-500 p-2 rounded-xl">
-                                <Icons.Sparkles />
+                <div className="min-h-screen text-slate-100 flex flex-col items-center select-none overflow-x-hidden relative z-10 pb-safe">
+                    <header className="w-full max-w-lg flex justify-between items-center p-4 md:p-6 mb-2 glass-panel rounded-b-3xl border-t-0 sticky top-0 z-20">
+                        <div className="flex items-center gap-3 group">
+                            <div className="bg-gradient-to-br from-cyber-violet to-cyber-cyan p-2.5 rounded-xl shadow-neon-violet/50 group-hover:shadow-neon-cyan/50 transition-all duration-500">
+                                <Icons.Sparkles className="text-white animate-pulse-slow" />
                             </div>
-                            <h1 className="text-xl font-black tracking-widest text-white uppercase italic">Promptle</h1>
+                            <h1 className="text-2xl font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-white via-cyber-cyan to-cyber-violet uppercase italic animate-glitch">Promptle</h1>
                         </div>
-                        <div className="flex gap-2 text-slate-400">
-                             <div className="p-1 hover:text-white cursor-pointer"><Icons.Info /></div>
-                             <div className="p-1 hover:text-white cursor-pointer"><Icons.Trophy /></div>
+                        <div className="flex gap-3 text-slate-400">
+                             <div className="p-2 hover:text-cyber-cyan hover:bg-cyber-darker/50 rounded-xl cursor-pointer transition-all border border-transparent hover:border-cyber-cyan/30"><Icons.Info /></div>
+                             <div className="p-2 hover:text-cyber-violet hover:bg-cyber-darker/50 rounded-xl cursor-pointer transition-all border border-transparent hover:border-cyber-violet/30"><Icons.Trophy /></div>
                         </div>
                     </header>
 
-                    <main className="w-full max-w-md flex flex-col gap-4">
-                        <div className="relative rounded-3xl overflow-hidden border border-slate-800 bg-slate-900 shadow-2xl">
+                    <main className="w-full max-w-md flex flex-1 flex-col gap-6 p-4">
+                        <div className="relative rounded-3xl overflow-hidden border border-cyber-violet/30 bg-cyber-darker shadow-2xl group scanlines">
                             <img
                                 src={dailyImage}
                                 alt="Indice IA"
-                                className={`w-full aspect-video object-cover transition-all duration-1000 ${gameState === 'playing' ? 'blur-2xl grayscale scale-110' : 'blur-none grayscale-0 scale-100'}`}
+                                className={`w-full aspect-video object-cover transition-all duration-1000 ease-in-out ${gameState === 'playing' ? 'blur-xl grayscale scale-110 opacity-80 group-hover:opacity-100 group-hover:blur-md group-hover:scale-105' : 'blur-none grayscale-0 scale-100 opacity-100'}`}
                             />
-                            <div className="absolute inset-0 bg-gradient-to-t from-slate-950 to-transparent"></div>
-                            <div className="absolute bottom-4 left-4">
-                                <span className="bg-slate-900/60 backdrop-blur-md border border-white/10 px-3 py-1 rounded-full text-[10px] text-cyan-300 font-bold tracking-widest uppercase">
-                                    Indice Visuel IA
+                            <div className="absolute inset-0 bg-gradient-to-t from-cyber-dark via-cyber-dark/50 to-transparent pointer-events-none"></div>
+                            <div className="absolute bottom-4 left-4 pointer-events-none">
+                                <span className="glass-panel border-cyber-cyan/30 px-3 py-1.5 rounded-full text-[10px] text-cyber-cyan font-bold tracking-[0.2em] uppercase shadow-neon-cyan/20 flex items-center gap-2">
+                                    <span className="w-2 h-2 bg-cyber-cyan rounded-full animate-pulse"></span>
+                                    Indice Visuel Actif
                                 </span>
                             </div>
                         </div>
 
-                        <div className="h-6 text-center text-[10px] font-bold text-violet-400 uppercase tracking-widest animate-pulse">
-                            {message}
+                        <div className="h-8 flex items-center justify-center">
+                            <div className={`text-xs font-black text-cyber-violet uppercase tracking-[0.2em] transition-all duration-300 ${message ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}>
+                                {message && <span className="glass-panel border-cyber-violet/50 px-4 py-2 rounded-full shadow-neon-violet/30 animate-glitch">{message}</span>}
+                            </div>
                         </div>
 
-                        <div className="flex flex-col gap-2">
+                        <div className="flex flex-col gap-2 flex-1 justify-center">
                             {guesses.map((guess, i) => (
                                 <div key={i} className="flex justify-center gap-1.5">
                                     {Array.from({ length: currentLength }).map((_, j) => (
-                                        <div key={j} className={`w-11 h-11 md:w-14 md:h-14 border-2 rounded-xl flex items-center justify-center text-xl font-black transition-all duration-300 ${getLetterStyle(guess, j, i === attempts)}`}>
+                                        <div key={j} className={`w-11 h-11 md:w-14 md:h-14 border-2 rounded-xl flex items-center justify-center text-2xl font-black transition-all duration-300 backdrop-blur-md ${getLetterStyle(guess, j, i === attempts)}`}>
                                             {(i === attempts ? currentGuess[j] : guess[j]) || ''}
                                         </div>
                                     ))}
@@ -291,7 +383,7 @@
                             ))}
                         </div>
 
-                        <div className="mt-4 flex flex-col gap-1.5 pb-8">
+                        <div className="mt-auto flex flex-col gap-1.5 pb-4">
                             {KEYBOARD_ROWS.map((row, i) => (
                                 <div key={i} className="flex justify-center gap-1">
                                     {row.map(key => {
@@ -300,9 +392,9 @@
                                             <button
                                                 key={key}
                                                 onClick={() => handleInput(key)}
-                                                className={`h-12 rounded-lg font-bold text-[10px] transition-all active:scale-90 shadow-sm flex items-center justify-center ${isSpecial ? 'px-3 bg-slate-700 text-white min-w-[55px]' : `w-8 md:w-10 ${getKeyStyle(key)}`}`}
+                                                className={`h-12 rounded-xl font-bold text-[10px] transition-all duration-200 active:scale-95 shadow-sm flex items-center justify-center border backdrop-blur-md ${isSpecial ? 'px-3 bg-cyber-darker text-slate-300 border-slate-700/50 min-w-[55px] hover:bg-cyber-darker/80 hover:text-white hover:border-cyber-cyan/50' : `w-8 md:w-10 ${getKeyStyle(key)}`}`}
                                             >
-                                                {key === 'DELETE' ? <Icons.Delete /> : key === 'ENTER' ? <Icons.CornerDownLeft /> : key}
+                                                {key === 'DELETE' ? <Icons.Delete className="w-5 h-5" /> : key === 'ENTER' ? <Icons.CornerDownLeft className="w-5 h-5" /> : key}
                                             </button>
                                         );
                                     })}
@@ -312,23 +404,26 @@
                     </main>
 
                     {gameState !== 'playing' && (
-                        <div className="fixed inset-0 bg-slate-950/95 backdrop-blur-md flex items-center justify-center p-6 z-50 animate-in fade-in duration-500">
-                            <div className="bg-slate-900 border border-slate-800 p-8 rounded-[2.5rem] text-center max-w-xs w-full shadow-2xl relative overflow-hidden">
-                                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-violet-600 to-cyan-500"></div>
-                                <div className="flex justify-center mb-4 text-violet-500">
-                                    <Icons.Trophy size={48} className="shadow-violet-500/20" />
+                        <div className="fixed inset-0 bg-cyber-dark/90 backdrop-blur-xl flex items-center justify-center p-6 z-50 animate-in fade-in duration-500">
+                            <div className="glass-panel p-8 rounded-[2.5rem] text-center max-w-xs w-full shadow-2xl relative overflow-hidden border-cyber-violet/30">
+                                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-cyber-violet via-cyber-cyan to-cyber-violet animate-pulse-slow"></div>
+                                <div className="flex justify-center mb-6">
+                                    <div className="bg-gradient-to-br from-cyber-violet to-cyber-cyan p-4 rounded-2xl shadow-neon-violet/50 rotate-3 relative">
+                                        <Icons.Trophy size={48} className="text-white" />
+                                        <div className="absolute inset-0 bg-white/20 blur-xl rounded-full animate-pulse-slow"></div>
+                                    </div>
                                 </div>
-                                <h2 className="text-2xl font-black mb-1 uppercase tracking-tighter italic text-white">
-                                    {gameState === 'won' ? 'Décrypté' : 'Échec'}
+                                <h2 className="text-3xl font-black mb-2 uppercase tracking-tighter italic text-transparent bg-clip-text bg-gradient-to-r from-white to-cyber-cyan animate-glitch">
+                                    {gameState === 'won' ? 'Système Purifié' : 'Erreur Fatale'}
                                 </h2>
-                                <p className="text-slate-500 mb-8 text-[11px] font-medium tracking-widest uppercase">
-                                    Mot : <span className="text-white font-bold">{targetWord}</span>
+                                <p className="text-slate-400 mb-8 text-xs font-bold tracking-[0.2em] uppercase">
+                                    Cible : <span className="text-cyber-cyan font-black text-base glow-cyan">{targetWord}</span>
                                 </p>
-                                <button className="w-full py-4 bg-white text-slate-950 rounded-2xl font-black shadow-xl hover:bg-slate-200 transition-all active:scale-95" onClick={() => window.location.reload()}>
-                                    REJOUER
+                                <button className="w-full py-4 bg-gradient-to-r from-cyber-violet to-cyber-cyan text-white rounded-2xl font-black shadow-neon-violet/50 hover:shadow-neon-cyan/50 transition-all active:scale-95 flex items-center justify-center gap-3 text-sm tracking-widest uppercase border border-white/20" onClick={() => window.location.reload()}>
+                                    <Icons.Sparkles className="w-5 h-5" /> Initialiser Nouveau Cycle
                                 </button>
-                                <button className="w-full mt-3 py-4 bg-slate-800 text-white rounded-2xl font-black flex items-center justify-center gap-2 hover:bg-slate-700 transition-all active:scale-95">
-                                    <Icons.Share2 /> PARTAGER
+                                <button className="w-full mt-3 py-4 glass-panel bg-cyber-darker/50 text-white rounded-2xl font-black flex items-center justify-center gap-2 hover:bg-cyber-darker/80 transition-all active:scale-95 border-cyber-cyan/20 hover:border-cyber-cyan/50 text-sm tracking-widest uppercase">
+                                    <Icons.Share2 className="w-5 h-5" /> Partager Données
                                 </button>
                             </div>
                         </div>
