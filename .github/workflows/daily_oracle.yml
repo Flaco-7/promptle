@@ -1,0 +1,30 @@
+name: Oracle Daily Update
+
+on:
+  schedule:
+    # S'exécute tous les jours à minuit (UTC)
+    - cron: '0 0 * * *'
+  workflow_dispatch: # Permet de le lancer manuellement depuis GitHub
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          pip install openai supabase requests python-dotenv Pillow
+
+      - name: Run The Oracle
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: python the_oracle.py
