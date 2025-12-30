@@ -21,29 +21,29 @@
                     },
                     animation: {
                         'pop': 'pop 0.1s ease-in-out forwards',
-                        'reveal-correct': 'reveal-correct 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards',
-                        'reveal-present': 'reveal-present 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards',
-                        'reveal-absent': 'reveal-absent 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards',
+                        'reveal-correct': 'reveal-correct 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards',
+                        'reveal-present': 'reveal-present 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards',
+                        'reveal-absent': 'reveal-absent 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards',
                     },
                     keyframes: {
                         pop: { '0%': { transform: 'scale(1)' }, '50%': { transform: 'scale(1.15)' }, '100%': { transform: 'scale(1)' } },
                         'reveal-correct': {
-                            '0%': { transform: 'rotateX(0deg)', backgroundColor: 'transparent' },
-                            '50%': { transform: 'rotateX(90deg)', backgroundColor: 'transparent' },
-                            '50.1%': { transform: 'rotateX(90deg)', backgroundColor: '#8B5CF6', borderColor: '#8B5CF6' },
+                            '0%': { transform: 'rotateX(0deg)', backgroundColor: 'transparent', borderColor: '#1e293b' },
+                            '49%': { backgroundColor: 'transparent', borderColor: '#1e293b' },
+                            '50%': { transform: 'rotateX(90deg)', backgroundColor: '#8B5CF6', borderColor: '#8B5CF6' },
                             '100%': { transform: 'rotateX(0deg)', backgroundColor: '#8B5CF6', borderColor: '#8B5CF6' }
                         },
                         'reveal-present': {
-                            '0%': { transform: 'rotateX(0deg)', backgroundColor: 'transparent' },
-                            '50%': { transform: 'rotateX(90deg)', backgroundColor: 'transparent' },
-                            '50.1%': { transform: 'rotateX(90deg)', backgroundColor: '#06B6D4', borderColor: '#06B6D4' },
+                            '0%': { transform: 'rotateX(0deg)', backgroundColor: 'transparent', borderColor: '#1e293b' },
+                            '49%': { backgroundColor: 'transparent', borderColor: '#1e293b' },
+                            '50%': { transform: 'rotateX(90deg)', backgroundColor: '#06B6D4', borderColor: '#06B6D4' },
                             '100%': { transform: 'rotateX(0deg)', backgroundColor: '#06B6D4', borderColor: '#06B6D4' }
                         },
                         'reveal-absent': {
-                            '0%': { transform: 'rotateX(0deg)', backgroundColor: 'transparent' },
-                            '50%': { transform: 'rotateX(90deg)', backgroundColor: 'transparent' },
-                            '50.1%': { transform: 'rotateX(90deg)', backgroundColor: '#1e293b', borderColor: '#1e293b' },
-                            '100%': { transform: 'rotateX(0deg)', backgroundColor: '#1e293b', borderColor: '#1e293b', opacity: '0.5' }
+                            '0%': { transform: 'rotateX(0deg)', backgroundColor: 'transparent', borderColor: '#1e293b' },
+                            '49%': { backgroundColor: 'transparent', borderColor: '#1e293b' },
+                            '50%': { transform: 'rotateX(90deg)', backgroundColor: '#334155', borderColor: '#334155' },
+                            '100%': { transform: 'rotateX(0deg)', backgroundColor: '#334155', borderColor: '#334155' }
                         },
                     }
                 }
@@ -80,15 +80,15 @@
         .blur-lvl-3 { filter: blur(5px) grayscale(10%); }
         .blur-lvl-4 { filter: blur(0px) grayscale(0%); }
 
-        /* Animation de délai pour la cascade (Staggered) */
+        /* Animation de délai millimétrée pour la cascade */
         .delay-0 { animation-delay: 0ms; }
-        .delay-1 { animation-delay: 150ms; }
-        .delay-2 { animation-delay: 300ms; }
-        .delay-3 { animation-delay: 450ms; }
-        .delay-4 { animation-delay: 600ms; }
-        .delay-5 { animation-delay: 750ms; }
-        .delay-6 { animation-delay: 900ms; }
-        .delay-7 { animation-delay: 1050ms; }
+        .delay-1 { animation-delay: 100ms; }
+        .delay-2 { animation-delay: 200ms; }
+        .delay-3 { animation-delay: 300ms; }
+        .delay-4 { animation-delay: 400ms; }
+        .delay-5 { animation-delay: 500ms; }
+        .delay-6 { animation-delay: 600ms; }
+        .delay-7 { animation-delay: 700ms; }
     </style>
 </head>
 <body class="bg-grid">
@@ -189,7 +189,8 @@
                 newGuesses[attempts] = currentGuess;
                 setGuesses(newGuesses);
 
-                const delay = (targetWord.length * 150) + 600;
+                // Délai total attendu : (nb de lettres * 100ms) + 400ms d'animation finale
+                const totalAnimationTime = (targetWord.length * 100) + 400;
 
                 setTimeout(() => {
                     const newUsed = {...usedLetters};
@@ -208,11 +209,10 @@
                         setCurrentGuess('');
                     }
                     setIsAnimating(false);
-                }, delay);
+                }, totalAnimationTime);
 
             }, [currentGuess, targetWord, attempts, guesses, usedLetters, getGuessStatuses, isAnimating]);
 
-            // --- GESTION DES INPUTS ---
             const onInput = useCallback((k) => {
                 if (gameState !== 'playing' || isAnimating) return;
                 if (k === 'ENTER') submitGuess();
@@ -222,7 +222,6 @@
                 }
             }, [gameState, isAnimating, currentGuess, targetWord, submitGuess]);
 
-            // Ecouteur clavier physique
             useEffect(() => {
                 const handleKeyDown = (e) => {
                     const key = e.key.toUpperCase();
@@ -276,12 +275,12 @@
 
                 if (status === 'correct') return "animate-reveal-correct text-white";
                 if (status === 'present') return "animate-reveal-present text-white";
-                return "animate-reveal-absent text-slate-500";
+                return "animate-reveal-absent text-slate-400";
             };
 
             return (
-                <div className="flex flex-col h-full max-w-lg md:max-w-2xl mx-auto p-4 md:p-8 pb-safe-extra relative">
-                    <header className="flex justify-between items-center mb-6">
+                <div className="flex flex-col h-full w-full max-w-xl md:max-w-2xl mx-auto p-4 md:p-6 pb-safe-extra relative">
+                    <header className="flex justify-between items-center mb-4 md:mb-6">
                         <div className="flex items-center gap-3">
                             <div className="bg-cyber-violet p-2 rounded-xl shadow-lg shadow-cyber-violet/20"><Icons.Sparkles /></div>
                             <h1 className="text-2xl md:text-3xl font-black tracking-tighter italic uppercase">PROMPTLE</h1>
@@ -292,7 +291,7 @@
                         </div>
                     </header>
 
-                    <div className="relative rounded-3xl overflow-hidden aspect-[16/9] md:aspect-[21/9] mb-6 border border-white/5 shadow-2xl">
+                    <div className="relative rounded-2xl md:rounded-3xl overflow-hidden aspect-video mb-4 md:mb-8 border border-white/5 shadow-2xl">
                         <img src={dailyImage} className={`w-full h-full object-cover transition-all duration-1000 ${gameState !== 'playing' ? 'blur-lvl-4' : (['blur-lvl-0', 'blur-lvl-1', 'blur-lvl-2', 'blur-lvl-3', 'blur-lvl-4', 'blur-lvl-4', 'blur-lvl-4'][attempts])}`} />
                         <div className="absolute inset-0 bg-gradient-to-t from-cyber-dark/90 via-transparent to-transparent"></div>
                         <div className="absolute bottom-4 left-4 flex items-center gap-2">
@@ -303,13 +302,13 @@
                         </div>
                     </div>
 
-                    <div className="flex-1 flex flex-col justify-center gap-2 md:gap-3 mb-8">
+                    <div className="flex-1 flex flex-col justify-center gap-2 md:gap-4 mb-6 md:mb-10">
                         {guesses.map((g, row) => (
                             <div key={row} className="flex justify-center gap-2 md:gap-3">
                                 {Array.from({length: targetWord.length}).map((_, i) => (
                                     <div
-                                        key={i}
-                                        className={`w-12 h-12 sm:w-14 sm:h-14 md:w-20 md:h-20 border-2 rounded-xl md:rounded-2xl flex items-center justify-center text-xl md:text-3xl font-black transition-all ${getLetterClass(g, i, row)} ${g ? `delay-${i}` : ''}`}
+                                        key={`${row}-${i}-${g ? 'filled' : 'empty'}`}
+                                        className={`w-11 h-11 sm:w-14 sm:h-14 md:w-20 md:h-20 border-2 rounded-xl md:rounded-2xl flex items-center justify-center text-xl md:text-3xl font-black transition-all ${getLetterClass(g, i, row)} ${g ? `delay-${i}` : ''}`}
                                     >
                                         {(row === attempts ? currentGuess[i] : g[i]) || ''}
                                     </div>
@@ -318,7 +317,7 @@
                         ))}
                     </div>
 
-                    <div className="grid gap-2 mb-4">
+                    <div className="grid gap-2 mb-2 md:mb-4">
                         {KEYBOARD.map((row, i) => (
                             <div key={i} className="flex justify-center gap-1.5 md:gap-2">
                                 {row.map(k => {
@@ -329,11 +328,11 @@
                                     if (status === 'present') style = "bg-cyber-cyan text-white";
                                     if (status === 'correct') style = "bg-cyber-violet text-white";
 
-                                    let sizing = "h-14 sm:h-16 md:h-20 min-w-[32px] sm:min-w-[40px] md:min-w-[55px] px-2 md:px-4";
-                                    if (isSpecial) sizing = "h-14 sm:h-16 md:h-20 min-w-[70px] sm:min-w-[90px] md:min-w-[120px] px-4 md:px-6 bg-slate-700";
+                                    let sizing = "h-12 sm:h-16 md:h-20 min-w-[30px] sm:min-w-[42px] md:min-w-[60px] px-1 md:px-4";
+                                    if (isSpecial) sizing = "h-12 sm:h-16 md:h-20 min-w-[65px] sm:min-w-[85px] md:min-w-[130px] px-3 md:px-6 bg-slate-700";
 
                                     return (
-                                        <button key={k} onClick={() => onInput(k)} className={`${sizing} rounded-xl font-bold text-xs md:text-lg active:scale-95 transition-all hover:bg-slate-600 hover:shadow-lg ${style}`}>
+                                        <button key={k} onClick={() => onInput(k)} className={`${sizing} rounded-lg md:rounded-xl font-bold text-[10px] md:text-lg active:scale-95 transition-all hover:bg-slate-600 hover:shadow-lg ${style}`}>
                                             {k === 'DELETE' ? "DEL" : k}
                                         </button>
                                     );
