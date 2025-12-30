@@ -88,7 +88,18 @@
         .blur-lvl-3 { filter: blur(5px) grayscale(10%); }
         .blur-lvl-4 { filter: blur(0px) grayscale(0%); }
 
-        .hidden-input { position: absolute; top: -100px; left: -100px; opacity: 0; height: 0; width: 0; }
+        /* Input invisible pour forcer le clavier natif sans scroll */
+        .hidden-input {
+            position: fixed;
+            top: 0;
+            left: 0;
+            opacity: 0;
+            height: 1px;
+            width: 1px;
+            z-index: -1;
+            border: none;
+            outline: none;
+        }
         .header-glass {
             background: rgba(15, 23, 42, 0.95);
             backdrop-filter: blur(10px);
@@ -113,29 +124,13 @@
         const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp4YnR5bWNmc3F4c2htdmFucmJyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcwMjAxMzUsImV4cCI6MjA4MjU5NjEzNX0.5hjR_k9Mz3SElQgqiLiHOwqgespnKmvm05X4IuQStfI";
 
         const Icons = {
-            Sparkles: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>,
+            Sparkles: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-white"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>,
             Trophy: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>,
             X: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>,
-            Zoom: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>,
-            Delete: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 5H9l-7 7 7 7h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Z"/><line x1="18" y1="9" x2="12" y2="15"/><line x1="12" y1="9" x2="18" y2="15"/></svg>,
-            Globe: () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
-        };
-
-        const TRANSLATIONS = {
-            fr: {
-                tagline: "DEVINE LE PROMPT", win: "ANALYSE RÉUSSIE", loss: "LIEN ROMPU",
-                stats: "STATISTIQUES", played: "Parties", winPerc: "% Victoire", streak: "Série",
-                copied: "SCORE COPIÉ !", share: "PARTAGER", replay: "REJOUER", language: "Langue"
-            },
-            en: {
-                tagline: "GUESS THE PROMPT", win: "ANALYSIS SUCCESS", loss: "LINK BROKEN",
-                stats: "STATISTICS", played: "Played", winPerc: "Win %", streak: "Streak",
-                copied: "SCORE COPIED!", share: "SHARE", replay: "REPLAY", language: "Language"
-            }
+            Zoom: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
         };
 
         const MAX_ATTEMPTS = 6;
-        const KEYBOARD = [['A','Z','E','R','T','Y','U','I','O','P'],['Q','S','D','F','G','H','J','K','L','M'],['ENTER','W','X','C','V','B','N','DELETE']];
 
         function App() {
             const [lang, setLang] = useState('fr');
@@ -155,7 +150,6 @@
             const [revealingRow, setRevealingRow] = useState(-1);
             const inputRef = useRef(null);
 
-            const t = TRANSLATIONS[lang];
             const todayStr = useMemo(() => new Date().toLocaleDateString(lang === 'fr' ? 'fr-FR' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' }), [lang]);
 
             useEffect(() => {
@@ -171,6 +165,13 @@
                 };
                 fetchDailyChallenge();
             }, [lang]);
+
+            // Bloquer le clic droit
+            useEffect(() => {
+                const handleContextMenu = (e) => e.preventDefault();
+                document.addEventListener('contextmenu', handleContextMenu);
+                return () => document.removeEventListener('contextmenu', handleContextMenu);
+            }, []);
 
             const getGuessStatuses = useCallback((guess, target) => {
                 if (!guess) return Array(target.length).fill('empty');
@@ -233,33 +234,33 @@
                 }, 200);
             }, [currentGuess, targetWord, attempts, guesses, usedLetters, getGuessStatuses, isAnimating]);
 
-            const onInput = useCallback((k) => {
-                if (gameState !== 'playing' || isAnimating) return;
-                if (k === 'ENTER') submitGuess();
-                else if (k === 'DELETE' || k === 'BACKSPACE') setCurrentGuess(prev => prev.slice(0, -1));
-                else if (/^[A-Z]$/.test(k) && currentGuess.length < targetWord.length) {
-                    setCurrentGuess(prev => (prev + k).toUpperCase());
-                }
-            }, [gameState, isAnimating, currentGuess, targetWord, submitGuess]);
-
             const getLetterClass = (g, i, row) => {
-                const base = "w-10 h-10 sm:w-14 sm:h-14 md:w-16 md:h-16 border-2 rounded-xl flex items-center justify-center text-xl md:text-2xl font-black transition-all duration-300 ";
+                const base = "w-11 h-11 sm:w-16 sm:h-16 md:w-20 md:h-20 border-2 rounded-xl flex items-center justify-center text-xl md:text-3xl font-black transition-all duration-300 ";
+
+                // Ligne en cours (Saisie)
                 if (row === attempts && revealingRow === -1) {
                     return base + (currentGuess[i] ? "border-cyber-violet bg-cyber-darker text-white animate-pop shadow-[0_0_15px_rgba(139,92,246,0.3)]" : "border-slate-800 bg-slate-900/40 text-transparent");
                 }
+
                 if (!g) return base + "border-slate-800 bg-slate-900/40 text-transparent";
+
+                // Lignes passées OU ligne en cours d'animation
                 const isFinishedRow = row < attempts;
                 const isRevealingNow = (row === revealingRow && i <= revealingIndex);
+
                 if (isFinishedRow || isRevealingNow) {
                     const statuses = getGuessStatuses(g, targetWord);
                     const status = statuses[i];
                     const isWinningRow = gameState === 'won' && row === attempts;
                     let statusClass = "";
+
                     if (status === 'correct') statusClass = (isRevealingNow && i === revealingIndex) ? "animate-reveal-correct" : "bg-cyber-violet border-cyber-violet shadow-[0_0_15px_rgba(139,92,246,0.4)]";
                     else if (status === 'present') statusClass = (isRevealingNow && i === revealingIndex) ? "animate-reveal-present" : "bg-cyber-cyan border-cyber-cyan shadow-[0_0_15px_rgba(6,182,212,0.4)]";
                     else statusClass = (isRevealingNow && i === revealingIndex) ? "animate-reveal-absent" : "bg-slate-800 border-slate-700 text-slate-500 opacity-60";
+
                     return base + `${statusClass} ${isWinningRow ? "animate-win-bounce" : ""} text-white`;
                 }
+
                 return base + "border-slate-800 bg-slate-900/40 text-white";
             };
 
@@ -281,44 +282,61 @@
 
             return (
                 <div
-                    className="flex flex-col h-full w-full select-none overflow-hidden max-w-lg mx-auto relative z-10"
+                    className="flex flex-col h-full w-full select-none overflow-hidden max-w-xl mx-auto relative z-10"
                     onClick={() => !isImageExpanded && inputRef.current && inputRef.current.focus()}
                 >
-                    <input ref={inputRef} type="text" className="hidden-input" value={currentGuess} onChange={(e) => setCurrentGuess(e.target.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, targetWord.length))} onKeyDown={(e) => e.key === 'Enter' && submitGuess()} autoFocus />
+                    {/* Input invisible pour piloter le clavier natif */}
+                    <input
+                        ref={inputRef}
+                        type="text"
+                        className="hidden-input"
+                        value={currentGuess}
+                        onChange={(e) => {
+                            if (isAnimating) return;
+                            const val = e.target.value.toUpperCase().replace(/[^A-Z]/g, '');
+                            setCurrentGuess(val.slice(0, targetWord.length));
+                        }}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter') submitGuess();
+                        }}
+                        autoFocus
+                    />
 
-                    <header className="header-glass flex justify-between items-center p-4 mb-2 shrink-0 rounded-b-2xl">
-                        <div className="flex items-center gap-3">
-                            <div className="bg-cyber-violet p-1.5 rounded-xl shadow-lg shadow-cyber-violet/40 ring-1 ring-white/20"><Icons.Sparkles /></div>
+                    <header className="header-glass flex justify-between items-center p-4 md:p-6 mb-4 shrink-0 rounded-b-3xl">
+                        <div className="flex items-center gap-4">
+                            <div className="bg-cyber-violet p-2 rounded-xl shadow-lg shadow-cyber-violet/40 ring-1 ring-white/20"><Icons.Sparkles /></div>
                             <div>
-                                <h1 className="text-xl font-black tracking-tighter italic uppercase leading-none">PROMPTLE</h1>
-                                <p className="text-[9px] font-bold text-cyber-cyan tracking-[0.2em] uppercase mt-1 opacity-80">{t.tagline}</p>
+                                <h1 className="text-2xl font-black tracking-tighter italic uppercase leading-none">PROMPTLE</h1>
+                                <p className="text-[10px] font-bold text-cyber-cyan tracking-[0.2em] uppercase mt-1 opacity-80">DEVINE LE PROMPT</p>
                             </div>
                         </div>
                         <div className="flex gap-2">
-                            <button onClick={(e) => { e.stopPropagation(); setLang(lang === 'fr' ? 'en' : 'fr'); }} className="bg-slate-800/50 p-2 rounded-lg text-[10px] font-bold border border-white/5 uppercase transition-all hover:bg-slate-700">
+                            <button onClick={(e) => { e.stopPropagation(); setLang(lang === 'fr' ? 'en' : 'fr'); }} className="bg-slate-800/80 p-2.5 rounded-xl text-[10px] font-bold border border-white/10 uppercase transition-all hover:bg-slate-700">
                                 {lang}
                             </button>
-                            <button onClick={(e) => { e.stopPropagation(); setIsStatsOpen(true); }} className="bg-slate-800/50 p-2 rounded-lg text-slate-300 hover:text-white transition-colors border border-white/5">
+                            <button onClick={(e) => { e.stopPropagation(); setIsStatsOpen(true); }} className="bg-slate-800/80 p-2.5 rounded-xl text-slate-300 hover:text-white transition-colors border border-white/10">
                                 <Icons.Trophy />
                             </button>
                         </div>
                     </header>
 
                     <div className="flex-grow flex flex-col justify-center min-h-0 px-4">
-                        <div className="mb-2 flex justify-between items-end px-1">
-                            <span className="text-[10px] font-black uppercase text-slate-500 tracking-widest">{todayStr}</span>
-                            <span className="text-[10px] font-bold text-cyber-cyan animate-pulse">LIVE SIGNAL</span>
+                        <div className="mb-4 flex justify-between items-end px-1">
+                            <span className="text-xs font-black uppercase text-slate-500 tracking-[0.2em]">{todayStr}</span>
+                            <span className="text-[10px] font-bold text-cyber-cyan animate-pulse bg-cyber-cyan/10 px-2 py-0.5 rounded-full border border-cyber-cyan/20">LIVE SIGNAL</span>
                         </div>
 
-                        <div onClick={(e) => { e.stopPropagation(); setIsImageExpanded(true); }} className="relative rounded-2xl overflow-hidden aspect-video border-2 border-white/10 shadow-[0_0_30px_rgba(0,0,0,0.5)] mx-auto w-full transition-all duration-300 cursor-zoom-in group">
+                        {/* Image principale - Nettement agrandie */}
+                        <div onClick={(e) => { e.stopPropagation(); setIsImageExpanded(true); }} className="relative rounded-3xl overflow-hidden aspect-video border-2 border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.6)] mx-auto w-full transition-all duration-300 cursor-zoom-in group shrink grow max-h-[50vh]">
                             {dailyImage && <img src={dailyImage} className={`w-full h-full object-cover transition-all duration-1000 ${blurClass}`} />}
                             <div className="absolute inset-0 bg-gradient-to-t from-cyber-dark/80 via-transparent to-transparent opacity-60"></div>
-                            <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 p-2 rounded-full ring-1 ring-white/20"><Icons.Zoom /></div>
+                            <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 p-3 rounded-full ring-1 ring-white/20"><Icons.Zoom /></div>
                         </div>
 
-                        <div className="flex flex-col justify-center gap-2 md:gap-3 py-6 perspective-1000">
+                        {/* Grille de jeu - Plus d'espace */}
+                        <div className="flex flex-col justify-center gap-3 md:gap-4 py-8 perspective-1000">
                             {guesses.map((g, row) => (
-                                <div key={row} className="flex justify-center gap-1.5 md:gap-3">
+                                <div key={row} className="flex justify-center gap-2 md:gap-3">
                                     {Array.from({length: targetWord.length}).map((_, i) => (
                                         <div key={i} className={getLetterClass(g, i, row)}>
                                             {(row === attempts ? currentGuess[i] : g[i]) || ''}
@@ -329,24 +347,8 @@
                         </div>
                     </div>
 
-                    <div className="shrink-0 pb-4 px-2">
-                        <div className="grid gap-1.5">
-                            {KEYBOARD.map((row, i) => (
-                                <div key={i} className="flex justify-center gap-1">
-                                    {row.map(k => {
-                                        const status = usedLetters[k];
-                                        const isSpecial = k === 'ENTER' || k === 'DELETE';
-                                        let style = "bg-slate-800 text-white border-b-4 border-slate-900";
-                                        if (status === 'absent') style = "bg-slate-950 text-slate-700 opacity-30 border-none";
-                                        if (status === 'present') style = "bg-cyber-cyan text-white border-b-4 border-cyan-700";
-                                        if (status === 'correct') style = "bg-cyber-violet text-white border-b-4 border-violet-700";
-                                        let sizing = "h-11 min-w-[30px] px-1";
-                                        if (isSpecial) sizing = "h-11 min-w-[60px] px-2 bg-slate-700 border-b-4 border-slate-800";
-                                        return <button key={k} onClick={(e) => { e.stopPropagation(); onInput(k); }} className={`${sizing} rounded-lg font-bold text-[10px] active:scale-95 active:translate-y-1 transition-all ${style}`}>{k === 'DELETE' ? "DEL" : k}</button>;
-                                    })}
-                                </div>
-                            ))}
-                        </div>
+                    <div className="shrink-0 h-8 md:h-12 flex justify-center items-center">
+                        <p className="text-[10px] font-bold text-slate-600 uppercase tracking-[0.4em]">Tapez pour décoder</p>
                     </div>
 
                     {/* Modale Statistiques */}
@@ -354,34 +356,42 @@
                         <div className="fixed inset-0 bg-cyber-dark/95 backdrop-blur-xl z-[70] flex items-center justify-center p-4" onClick={() => setIsStatsOpen(false)}>
                             <div className="glass-card w-full max-w-sm p-8 rounded-[2.5rem] relative animate-in zoom-in-95 duration-300" onClick={e => e.stopPropagation()}>
                                 <button onClick={() => setIsStatsOpen(false)} className="absolute top-6 right-6 text-slate-500 hover:text-white"><Icons.X /></button>
-                                <h3 className="text-2xl font-black italic uppercase mb-8 tracking-tighter">{t.stats}</h3>
+                                <h3 className="text-2xl font-black italic uppercase mb-8 tracking-tighter">STATISTIQUES</h3>
                                 <div className="grid grid-cols-3 gap-4 mb-8 text-center">
-                                    <div><div className="text-3xl font-black text-white">0</div><div className="text-[10px] uppercase text-slate-500 font-bold">{t.played}</div></div>
-                                    <div><div className="text-3xl font-black text-white">0</div><div className="text-[10px] uppercase text-slate-500 font-bold">{t.winPerc}</div></div>
-                                    <div><div className="text-3xl font-black text-white">0</div><div className="text-[10px] uppercase text-slate-500 font-bold">{t.streak}</div></div>
+                                    <div><div className="text-3xl font-black text-white">0</div><div className="text-[10px] uppercase text-slate-500 font-bold">Parties</div></div>
+                                    <div><div className="text-3xl font-black text-white">0</div><div className="text-[10px] uppercase text-slate-500 font-bold">% Victoire</div></div>
+                                    <div><div className="text-3xl font-black text-white">0</div><div className="text-[10px] uppercase text-slate-500 font-bold">Série</div></div>
                                 </div>
-                                <button onClick={() => setIsStatsOpen(false)} className="w-full py-4 rounded-xl bg-white text-cyber-dark font-black uppercase text-xs tracking-widest">OK</button>
+                                <button onClick={() => setIsStatsOpen(false)} className="w-full py-4 rounded-xl bg-white text-cyber-dark font-black uppercase text-xs tracking-widest">CONTINUER</button>
                             </div>
                         </div>
                     )}
 
                     {/* Overlay Zoom */}
                     {isImageExpanded && (
-                        <div onClick={() => setIsImageExpanded(false)} className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-md flex items-center justify-center p-4 cursor-zoom-out animate-in fade-in duration-300">
-                            <div className="absolute top-6 right-6 p-2 bg-white/10 rounded-full text-white"><Icons.X /></div>
-                            <img src={dailyImage} className={`max-w-full max-h-[80vh] rounded-xl shadow-2xl object-contain border border-white/10 ${blurClass}`} />
-                            <div className="absolute bottom-10 text-white/40 text-[10px] font-black uppercase tracking-[0.3em] bg-black/40 px-4 py-2 rounded-full">RETOUR AU DÉCRYPTAGE</div>
+                        <div onClick={() => setIsImageExpanded(false)} className="fixed inset-0 z-[100] bg-black/98 backdrop-blur-xl flex items-center justify-center p-4 cursor-zoom-out animate-in fade-in duration-300">
+                            <div className="absolute top-6 right-6 p-3 bg-white/10 rounded-full text-white ring-1 ring-white/20 hover:bg-white/20 transition-colors">
+                                <Icons.X />
+                            </div>
+                            <img src={dailyImage} className={`max-w-full max-h-[85vh] rounded-2xl shadow-[0_0_80px_rgba(0,0,0,1)] object-contain border border-white/10 ${blurClass}`} />
+                            <div className="absolute bottom-10 text-white/40 text-[10px] font-black uppercase tracking-[0.3em] bg-black/40 px-6 py-3 rounded-full backdrop-blur-md ring-1 ring-white/10">
+                                CLIQUEZ POUR REVENIR
+                            </div>
                         </div>
                     )}
 
                     {/* Modale Fin de Partie */}
                     {gameState !== 'playing' && (
                         <div className="fixed inset-0 bg-cyber-dark/95 backdrop-blur-xl z-[60] flex items-center justify-center p-4">
-                            <div className="glass-card w-full max-w-sm p-8 rounded-[2.5rem] text-center shadow-2xl relative border-t-4 border-cyber-violet animate-in zoom-in-95 duration-300">
-                                <h2 className="text-3xl font-black italic mb-2 uppercase tracking-tighter">{gameState === 'won' ? t.win : t.loss}</h2>
-                                <p className="text-slate-500 text-[10px] tracking-widest uppercase mb-8">DÉCRYPTÉ : <span className="text-cyber-cyan font-bold ml-1">{targetWord}</span></p>
-                                <button onClick={copyToClipboard} className={`w-full py-5 rounded-2xl font-black transition-all active:scale-95 border-b-4 ${copyStatus ? 'bg-green-500 border-green-700 text-white' : 'bg-cyber-violet border-violet-800 text-white'}`}>{copyStatus ? t.copied : t.share}</button>
-                                <button onClick={() => window.location.reload()} className="w-full mt-6 py-2 text-slate-500 font-bold hover:text-white transition-colors text-[10px] tracking-widest uppercase">{t.replay}</button>
+                            <div className="glass-panel w-full max-w-sm p-10 rounded-[3rem] text-center shadow-2xl relative border-t-4 border-cyber-violet animate-in zoom-in-95 duration-300 bg-slate-900/90">
+                                <h2 className="text-4xl font-black italic mb-2 uppercase tracking-tighter">
+                                    {gameState === 'won' ? "ANALYSE RÉUSSIE" : "LIEN ROMPU"}
+                                </h2>
+                                <p className="text-slate-500 text-[10px] tracking-widest uppercase mb-10">OBJET DÉCRYPTÉ : <span className="text-cyber-cyan font-bold ml-1">{targetWord}</span></p>
+                                <button onClick={copyToClipboard} className={`w-full py-5 rounded-2xl font-black transition-all active:scale-95 border-b-4 ${copyStatus ? 'bg-green-500 border-green-700 text-white' : 'bg-cyber-violet border-violet-800 text-white shadow-lg'}`}>
+                                    {copyStatus ? "RÉSULTAT COPIÉ" : "PARTAGER LE SCORE"}
+                                </button>
+                                <button onClick={() => window.location.reload()} className="w-full mt-8 py-2 text-slate-500 font-bold hover:text-white transition-colors text-[11px] tracking-[0.3em] uppercase">NOUVEAU CYCLE</button>
                             </div>
                         </div>
                     )}
