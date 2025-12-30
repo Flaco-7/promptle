@@ -21,9 +21,10 @@
                     },
                     animation: {
                         'pop': 'pop 0.1s ease-in-out forwards',
-                        'reveal-correct': 'reveal-correct 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards',
-                        'reveal-present': 'reveal-present 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards',
-                        'reveal-absent': 'reveal-absent 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards',
+                        'reveal-correct': 'reveal-correct 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards',
+                        'reveal-present': 'reveal-present 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards',
+                        'reveal-absent': 'reveal-absent 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards',
+                        'win-bounce': 'win-bounce 0.5s ease-in-out forwards',
                     },
                     keyframes: {
                         pop: { '0%': { transform: 'scale(1)' }, '50%': { transform: 'scale(1.15)' }, '100%': { transform: 'scale(1)' } },
@@ -45,6 +46,10 @@
                             '50%': { transform: 'rotateX(90deg)', backgroundColor: '#334155', borderColor: '#334155' },
                             '100%': { transform: 'rotateX(0deg)', backgroundColor: '#334155', borderColor: '#334155' }
                         },
+                        'win-bounce': {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-15px)' },
+                        }
                     }
                 }
             }
@@ -60,31 +65,32 @@
             overscroll-behavior: none;
             height: 100vh;
             overflow: hidden;
-            display: flex;
-            justify-content: center;
         }
         .bg-grid {
             background-size: 40px 40px;
             background-image: linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px), linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
         }
-        .glass-panel {
-            background: rgba(11, 17, 33, 0.9);
-            backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
+        .perspective-1000 { perspective: 1000px; }
         .blur-lvl-0 { filter: blur(35px) grayscale(100%); }
         .blur-lvl-1 { filter: blur(20px) grayscale(70%); }
         .blur-lvl-2 { filter: blur(10px) grayscale(40%); }
         .blur-lvl-3 { filter: blur(5px) grayscale(10%); }
         .blur-lvl-4 { filter: blur(0px) grayscale(0%); }
-        .perspective-1000 { perspective: 1000px; }
+
+        /* Cacher l'input natif tout en le gardant fonctionnel pour le clavier mobile */
+        .hidden-input {
+            position: absolute;
+            opacity: 0;
+            pointer-events: none;
+            z-index: -1;
+        }
     </style>
 </head>
-<body class="bg-grid">
-    <div id="root" class="w-full h-full"></div>
+<body class="bg-grid flex justify-center items-center">
+    <div id="root" class="w-full h-full max-w-2xl"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, useCallback, useMemo } = React;
+        const { useState, useEffect, useCallback, useRef } = React;
 
         // --- CONFIGURATION SUPABASE ---
         const SUPABASE_URL = "https://jxbtymcfsqxshmvanrbr.supabase.co";
@@ -98,26 +104,10 @@
             Delete: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 5H9l-7 7 7 7h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Z"/><line x1="18" y1="9" x2="12" y2="15"/><line x1="12" y1="9" x2="18" y2="15"/></svg>
         };
 
-        const TRANSLATIONS = {
-            fr: {
-                clue: "ANALYSE IA", win: "PRÉDICTION RÉUSSIE", loss: "SIGNAL PERDU",
-                shareClassic: "PARTAGER LE LIEN", shareCompact: "COPIER EMOJIS",
-                copied: "COPIÉ !", replay: "NOUVEAU CYCLE", target: "MOT DU JOUR",
-                legendCorrect: "Correct", legendPresent: "Présent", legendAbsent: "Absent"
-            },
-            en: {
-                clue: "AI SIGNAL", win: "PREDICTION SUCCESS", loss: "SIGNAL LOST",
-                shareClassic: "SHARE LINK", shareCompact: "COPY EMOJIS",
-                copied: "COPIED!", replay: "NEW CYCLE", target: "TARGET WORD",
-                legendCorrect: "Correct", legendPresent: "Present", legendAbsent: "Absent"
-            }
-        };
-
         const MAX_ATTEMPTS = 6;
         const KEYBOARD = [['A','Z','E','R','T','Y','U','I','O','P'],['Q','S','D','F','G','H','J','K','L','M'],['ENTER','W','X','C','V','B','N','DELETE']];
 
         function App() {
-            const [lang, setLang] = useState('fr');
             const [gameState, setGameState] = useState('playing');
             const [isAnimating, setIsAnimating] = useState(false);
             const [attempts, setAttempts] = useState(0);
@@ -129,10 +119,9 @@
             const [copyStatus, setCopyStatus] = useState(null);
 
             // États pour le reveal progressif
-            const [revealingRow, setRevealingRow] = useState(null);
-            const [revealedLetters, setRevealedLetters] = useState({});
-
-            const t = TRANSLATIONS[lang];
+            const [revealingIndex, setRevealingIndex] = useState(-1);
+            const [revealingRow, setRevealingRow] = useState(-1);
+            const inputRef = useRef(null);
 
             useEffect(() => {
                 const fetchDailyChallenge = async () => {
@@ -141,19 +130,19 @@
                     const today = new Date().toISOString().split('T')[0];
                     const { data } = await supabase.from('daily_challenges').select('*').eq('publish_date', today).maybeSingle();
                     if (data) {
-                        const word = (lang === 'en' && data.word_en) ? data.word_en : data.word;
-                        setTargetWord(word.toUpperCase());
-                        setDailyImage((lang === 'en' && data.image_url_en) ? data.image_url_en : data.image_url);
+                        setTargetWord(data.word.toUpperCase());
+                        setDailyImage(data.image_url);
                     }
                 };
                 fetchDailyChallenge();
-            }, [lang]);
+                // Focus automatique au chargement pour le clavier mobile
+                if (inputRef.current) inputRef.current.focus();
+            }, []);
 
             const getGuessStatuses = useCallback((guess, target) => {
                 if (!guess) return Array(target.length).fill('empty');
                 const statuses = Array(target.length).fill('absent');
                 const targetCounts = {};
-
                 for (let i = 0; i < target.length; i++) {
                     targetCounts[target[i]] = (targetCounts[target[i]] || 0) + 1;
                     if (guess[i] === target[i]) {
@@ -176,33 +165,33 @@
                 if (currentGuess.length !== targetWord.length || isAnimating) return;
 
                 setIsAnimating(true);
+                const statuses = getGuessStatuses(currentGuess, targetWord);
+
                 const newGuesses = [...guesses];
                 newGuesses[attempts] = currentGuess;
                 setGuesses(newGuesses);
 
-                const statuses = getGuessStatuses(currentGuess, targetWord);
-
-                // Démarre le reveal progressif
+                // Lancement de la cascade de reveal
                 setRevealingRow(attempts);
-                setRevealedLetters(prev => ({ ...prev, [attempts]: 0 }));
-
-                let revealedCount = 0;
+                let idx = 0;
                 const interval = setInterval(() => {
-                    revealedCount++;
-                    setRevealedLetters(prev => ({ ...prev, [attempts]: revealedCount }));
+                    const currentLetter = currentGuess[idx];
+                    const currentStatus = statuses[idx];
 
-                    if (revealedCount >= targetWord.length) {
+                    // Mise à jour immédiate du clavier pour cette lettre dès qu'elle se retourne
+                    setUsedLetters(prev => {
+                        const newUsed = { ...prev };
+                        if (currentStatus === 'correct') newUsed[currentLetter] = 'correct';
+                        else if (currentStatus === 'present' && newUsed[currentLetter] !== 'correct') newUsed[currentLetter] = 'present';
+                        else if (currentStatus === 'absent' && !newUsed[currentLetter]) newUsed[currentLetter] = 'absent';
+                        return newUsed;
+                    });
+
+                    setRevealingIndex(idx);
+                    idx++;
+
+                    if (idx >= targetWord.length) {
                         clearInterval(interval);
-
-                        // Met à jour le clavier après le dernier flip
-                        const newUsed = { ...usedLetters };
-                        currentGuess.split('').forEach((l, i) => {
-                            const status = statuses[i];
-                            if (status === 'correct') newUsed[l] = 'correct';
-                            else if (status === 'present' && newUsed[l] !== 'correct') newUsed[l] = 'present';
-                            else if (status === 'absent' && !newUsed[l]) newUsed[l] = 'absent';
-                        });
-                        setUsedLetters(newUsed);
 
                         setTimeout(() => {
                             if (currentGuess === targetWord) {
@@ -212,12 +201,14 @@
                             } else {
                                 setAttempts(prev => prev + 1);
                                 setCurrentGuess('');
+                                setRevealingRow(-1);
+                                setRevealingIndex(-1);
+                                if (inputRef.current) inputRef.current.value = "";
                             }
-                            setRevealingRow(null);
                             setIsAnimating(false);
-                        }, 500);
+                        }, 600);
                     }
-                }, 250); // Vitesse de la cascade (250ms entre chaque lettre)
+                }, 250);
 
             }, [currentGuess, targetWord, attempts, guesses, usedLetters, getGuessStatuses, isAnimating]);
 
@@ -230,140 +221,150 @@
                 }
             }, [gameState, isAnimating, currentGuess, targetWord, submitGuess]);
 
-            useEffect(() => {
-                const handleKeyDown = (e) => {
-                    const key = e.key.toUpperCase();
-                    if (key === 'ENTER') onInput('ENTER');
-                    else if (key === 'BACKSPACE') onInput('DELETE');
-                    else if (/^[A-Z]$/.test(key)) onInput(key);
-                };
-                window.addEventListener('keydown', handleKeyDown);
-                return () => window.removeEventListener('keydown', handleKeyDown);
-            }, [onInput]);
+            // Synchronisation avec l'input invisible pour le clavier mobile
+            const handleNativeInput = (e) => {
+                const val = e.target.value.toUpperCase();
+                // On ne garde que les lettres A-Z
+                const cleaned = val.replace(/[^A-Z]/g, '').slice(0, targetWord.length);
+                setCurrentGuess(cleaned);
+            };
+
+            const handleNativeKeyDown = (e) => {
+                if (e.key === 'Enter') submitGuess();
+            };
+
+            const getLetterClass = (g, i, row) => {
+                const base = "w-11 h-11 sm:w-14 sm:h-14 md:w-16 md:h-16 border-2 rounded-xl md:rounded-2xl flex items-center justify-center text-xl md:text-2xl font-black transition-all duration-300 ";
+
+                // Ligne en cours de saisie
+                if (row === attempts && revealingRow === -1) {
+                    return base + (currentGuess[i]
+                        ? "border-cyber-violet bg-cyber-darker text-white animate-pop"
+                        : "border-slate-800 bg-slate-900/40 text-transparent");
+                }
+
+                if (!g) return base + "border-slate-800 bg-slate-900/40 text-transparent";
+
+                // Si on est sur la ligne en cours de reveal
+                const isRevealed = (row < attempts && revealingRow === -1) || (row === revealingRow && i <= revealingIndex);
+
+                if (isRevealed) {
+                    const statuses = getGuessStatuses(g, targetWord);
+                    const status = statuses[i];
+                    const isNew = (row === revealingRow && i === revealingIndex);
+                    const isWinningRow = gameState === 'won' && row === attempts;
+
+                    let statusClass = "";
+                    if (status === 'correct') statusClass = isNew ? "animate-reveal-correct" : "bg-cyber-violet border-cyber-violet";
+                    else if (status === 'present') statusClass = isNew ? "animate-reveal-present" : "bg-cyber-cyan border-cyber-cyan";
+                    else statusClass = isNew ? "animate-reveal-absent" : "bg-slate-800 border-slate-700 text-slate-500 opacity-60";
+
+                    const winBounce = isWinningRow ? "animate-win-bounce" : "";
+                    const delayBounce = isWinningRow ? `delay-[${i * 100}ms]` : "";
+
+                    return base + `${statusClass} ${winBounce} ${delayBounce} text-white`;
+                }
+
+                return base + "border-slate-800 bg-slate-900/40 text-white";
+            };
 
             const getEmojiGrid = () => {
                 return guesses.slice(0, gameState === 'won' ? attempts + 1 : MAX_ATTEMPTS)
                     .map(g => {
                         if (!g) return "";
-                        const rowStatuses = getGuessStatuses(g, targetWord);
-                        return rowStatuses.map(s => {
-                            if (s === 'correct') return "🟪";
-                            if (s === 'present') return "🟦";
-                            return "⬛";
-                        }).join('');
+                        return getGuessStatuses(g, targetWord).map(s => (s === 'correct' ? "🟪" : s === 'present' ? "🟦" : "⬛")).join('');
                     }).filter(x => x).join('\n');
             };
 
-            const copyToClipboard = (type) => {
+            const copyToClipboard = () => {
                 const grid = getEmojiGrid();
-                const day = Math.floor(Date.now() / 86400000) - 19700;
-                let text = (type === 'classic')
-                    ? `PROMPTLE #${day}\n${gameState === 'won' ? attempts + 1 : 'X'}/6\n${grid}\npromptle.netlify.app`
-                    : grid;
-
+                const text = `PROMPTLE\n${gameState === 'won' ? attempts + 1 : 'X'}/6\n${grid}\npromptle.netlify.app`;
                 const textArea = document.createElement("textarea");
                 textArea.value = text;
                 document.body.appendChild(textArea);
                 textArea.select();
                 document.execCommand('copy');
                 document.body.removeChild(textArea);
-
-                setCopyStatus(type);
-                setTimeout(() => setCopyStatus(null), 3000);
-            };
-
-            const getLetterClass = (g, i, row) => {
-                // Ligne en cours de frappe
-                if (row === attempts && gameState === 'playing') {
-                    return currentGuess[i]
-                        ? "border-cyber-violet bg-cyber-darker text-white animate-pop shadow-[0_0_10px_rgba(139,92,246,0.2)]"
-                        : "border-slate-800 bg-slate-900/40";
-                }
-
-                if (!g) return "border-slate-800 bg-slate-900/40";
-
-                // Gestion du reveal progressif
-                if (revealingRow === row) {
-                    const revealedInThisRow = revealedLetters[row] || 0;
-                    if (i >= revealedInThisRow) {
-                        return "border-slate-800 bg-slate-900/40";
-                    }
-                }
-
-                const rowStatuses = getGuessStatuses(g, targetWord);
-                const status = rowStatuses[i];
-
-                if (status === 'correct') return "bg-cyber-violet border-cyber-violet text-white animate-reveal-correct";
-                if (status === 'present') return "bg-cyber-cyan border-cyber-cyan text-white animate-reveal-present";
-                return "bg-slate-700 border-slate-700 text-slate-400 animate-reveal-absent";
+                setCopyStatus(true);
+                setTimeout(() => setCopyStatus(false), 2000);
             };
 
             return (
-                <div className="flex flex-col h-screen w-full p-4 md:p-8 relative">
-                    {/* Header compact */}
-                    <header className="flex justify-between items-center mb-2 md:mb-4 shrink-0 max-w-2xl mx-auto w-full">
+                <div
+                    className="flex flex-col h-screen w-full p-4 md:p-6 select-none overflow-hidden"
+                    onClick={() => inputRef.current && inputRef.current.focus()}
+                >
+                    {/* Input invisible pour forcer le clavier mobile */}
+                    <input
+                        ref={inputRef}
+                        type="text"
+                        className="hidden-input"
+                        value={currentGuess}
+                        onChange={handleNativeInput}
+                        onKeyDown={handleNativeKeyDown}
+                        autoFocus
+                    />
+
+                    {/* Header */}
+                    <header className="flex justify-between items-center mb-4 max-w-lg mx-auto w-full shrink-0">
                         <div className="flex items-center gap-3">
-                            <div className="bg-cyber-violet p-1.5 rounded-lg shadow-lg shadow-cyber-violet/20"><Icons.Sparkles /></div>
+                            <div className="bg-cyber-violet p-1.5 rounded-xl shadow-lg shadow-cyber-violet/20"><Icons.Sparkles /></div>
                             <h1 className="text-xl md:text-2xl font-black tracking-tighter italic uppercase">PROMPTLE</h1>
                         </div>
-                        <div className="flex gap-2">
-                            <button onClick={() => setLang(lang === 'fr' ? 'en' : 'fr')} className="text-[10px] font-bold px-2 py-1 glass-panel rounded uppercase text-slate-400">{lang}</button>
-                            <div className="p-2 text-slate-500 cursor-pointer hover:text-white transition-colors"><Icons.Trophy /></div>
+                        <div className="flex gap-4 text-slate-500">
+                            <Icons.Trophy />
                         </div>
                     </header>
 
-                    <div className="flex-1 flex flex-col justify-between max-w-2xl mx-auto w-full overflow-hidden">
-
-                        {/* Image principale - Taille optimisée */}
-                        <div className="relative rounded-2xl md:rounded-3xl overflow-hidden aspect-video border border-white/5 shadow-2xl shrink grow max-h-[40vh] mx-auto w-full">
+                    {/* Zone d'affichage centrale */}
+                    <div className="flex-1 flex flex-col justify-center min-h-0">
+                        <div className="relative rounded-2xl md:rounded-3xl overflow-hidden aspect-video border border-white/5 shadow-2xl mx-auto w-full max-w-xl">
                             <img
                                 src={dailyImage}
-                                alt="Indice IA"
-                                className={`w-full h-full object-cover transition-all duration-1000 ${gameState !== 'playing' ? 'blur-lvl-4' : (['blur-lvl-0', 'blur-lvl-1', 'blur-lvl-2', 'blur-lvl-3', 'blur-lvl-4', 'blur-lvl-4', 'blur-lvl-4'][attempts])}`}
+                                className={`w-full h-full object-cover transition-all duration-1000 ${gameState !== 'playing' ? 'blur-none' : (['blur-lvl-0', 'blur-lvl-1', 'blur-lvl-2', 'blur-lvl-3', 'blur-lvl-4', 'blur-lvl-4', 'blur-lvl-4'][attempts])}`}
                             />
-                            <div className="absolute inset-0 bg-gradient-to-t from-cyber-dark/90 via-transparent to-transparent"></div>
+                            <div className="absolute inset-0 bg-gradient-to-t from-cyber-dark/80 via-transparent to-transparent opacity-60"></div>
                             <div className="absolute bottom-3 left-3">
-                                <span className="text-[10px] font-black tracking-widest uppercase bg-cyber-dark/80 backdrop-blur-md px-3 py-1 rounded-lg border border-white/10 text-cyber-cyan">
-                                    {t.clue}
+                                <span className="text-[10px] font-black tracking-widest uppercase bg-cyber-dark/80 backdrop-blur-md px-3 py-1 rounded-lg border border-white/10 text-cyber-cyan shadow-xl">
+                                    SIGNAL IA
                                 </span>
                             </div>
                         </div>
 
                         {/* Grille de jeu */}
-                        <div className="flex flex-col justify-center gap-2 md:gap-3 my-4 perspective-1000">
+                        <div className="flex flex-col justify-center gap-2 md:gap-3 py-4 md:py-8 perspective-1000">
                             {guesses.map((g, row) => (
-                                <div key={row} className="flex justify-center gap-1.5 md:gap-2.5">
+                                <div key={row} className="flex justify-center gap-1.5 md:gap-3">
                                     {Array.from({length: targetWord.length}).map((_, i) => (
-                                        <div
-                                            key={`${row}-${i}`}
-                                            className={`w-11 h-11 sm:w-14 sm:h-14 md:w-16 md:h-16 border-2 rounded-xl md:rounded-2xl flex items-center justify-center text-xl md:text-2xl font-black transition-all ${getLetterClass(g, i, row)}`}
-                                        >
+                                        <div key={i} className={getLetterClass(g, i, row)}>
                                             {(row === attempts ? currentGuess[i] : g[i]) || ''}
                                         </div>
                                     ))}
                                 </div>
                             ))}
                         </div>
+                    </div>
 
-                        {/* Clavier compact pour libérer de l'espace */}
-                        <div className="grid gap-1.5 md:gap-2 mb-2 shrink-0">
+                    {/* Clavier virtuel (toujours là en appoint) */}
+                    <div className="max-w-xl mx-auto w-full shrink-0 pb-4 md:pb-6">
+                        <div className="grid gap-1.5 md:gap-2">
                             {KEYBOARD.map((row, i) => (
                                 <div key={i} className="flex justify-center gap-1 md:gap-2">
                                     {row.map(k => {
                                         const status = usedLetters[k];
                                         const isSpecial = k === 'ENTER' || k === 'DELETE';
                                         let style = "bg-slate-800 text-white";
-                                        if (status === 'absent') style = "bg-slate-950 text-slate-700 opacity-40";
-                                        if (status === 'present') style = "bg-cyber-cyan text-white";
-                                        if (status === 'correct') style = "bg-cyber-violet text-white";
+                                        if (status === 'absent') style = "bg-slate-950 text-slate-700 opacity-30";
+                                        if (status === 'present') style = "bg-cyber-cyan text-white shadow-[0_0_10px_rgba(6,182,212,0.3)]";
+                                        if (status === 'correct') style = "bg-cyber-violet text-white shadow-[0_0_15px_rgba(139,92,246,0.4)]";
 
-                                        let sizing = "h-11 sm:h-13 md:h-12 min-w-[28px] sm:min-w-[40px] md:min-w-[50px] px-1 md:px-4";
-                                        if (isSpecial) sizing = "h-11 sm:h-13 md:h-12 min-w-[60px] sm:min-w-[80px] md:min-w-[100px] px-2 md:px-4 bg-slate-700";
+                                        let sizing = "h-11 md:h-12 min-w-[28px] md:min-w-[50px] px-1 md:px-4";
+                                        if (isSpecial) sizing = "h-11 md:h-12 min-w-[60px] md:min-w-[100px] px-2 md:px-4 bg-slate-700";
 
                                         return (
                                             <button
                                                 key={k}
-                                                onClick={() => onInput(k)}
+                                                onClick={(e) => { e.stopPropagation(); onInput(k); }}
                                                 className={`${sizing} rounded-lg md:rounded-xl font-bold text-[10px] md:text-sm active:scale-95 transition-all hover:bg-slate-600 ${style}`}
                                             >
                                                 {k === 'DELETE' ? <Icons.Delete /> : k}
@@ -378,26 +379,28 @@
                     {/* Modale de fin */}
                     {gameState !== 'playing' && (
                         <div className="fixed inset-0 bg-cyber-dark/95 backdrop-blur-xl z-50 flex items-center justify-center p-4">
-                            <div className="glass-panel w-full max-w-md p-8 md:p-10 rounded-[2.5rem] text-center shadow-2xl relative border-cyber-violet/20">
+                            <div className="glass-panel w-full max-w-sm p-8 md:p-10 rounded-[2.5rem] text-center shadow-2xl relative border-cyber-violet/20 animate-in zoom-in-95 duration-300">
                                 <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-cyber-violet to-cyber-cyan"></div>
                                 <h2 className="text-3xl md:text-4xl font-black italic mb-2 uppercase tracking-tighter">
-                                    {gameState === 'won' ? t.win : t.loss}
+                                    {gameState === 'won' ? "PRÉDICTION RÉUSSIE" : "SIGNAL PERDU"}
                                 </h2>
-                                <p className="text-slate-500 text-xs tracking-widest uppercase mb-8">
-                                    {t.target} : <span className="text-white font-bold ml-2">{targetWord}</span>
+                                <p className="text-slate-500 text-[10px] tracking-widest uppercase mb-8">
+                                    MOT DU JOUR : <span className="text-white font-bold ml-2">{targetWord}</span>
                                 </p>
 
                                 <div className="bg-cyber-darker/50 p-6 rounded-3xl mb-8 border border-white/5 inline-block mx-auto shadow-inner">
-                                    <pre className="text-2xl leading-tight tracking-[0.4em] font-mono text-center">
+                                    <pre className="text-xl md:text-2xl leading-tight tracking-[0.4em] font-mono text-center">
                                         {getEmojiGrid()}
                                     </pre>
                                 </div>
 
-                                <div className="grid gap-3">
-                                    <button onClick={() => copyToClipboard('compact')} className={`w-full py-4 rounded-2xl font-black flex items-center justify-center gap-4 transition-all active:scale-95 border-2 ${copyStatus === 'compact' ? 'bg-green-500 border-green-400 text-white' : 'bg-cyber-violet border-cyber-violet/30 text-white shadow-lg shadow-cyber-violet/20'}`}><Icons.Copy /> {copyStatus === 'compact' ? t.copied : t.shareCompact}</button>
-                                    <button onClick={() => copyToClipboard('classic')} className={`w-full py-4 rounded-2xl font-black flex items-center justify-center gap-4 transition-all active:scale-95 border-2 ${copyStatus === 'classic' ? 'bg-green-500 border-green-400 text-white' : 'bg-white border-white text-cyber-dark'}`}><Icons.Share /> {copyStatus === 'classic' ? t.copied : t.shareClassic}</button>
-                                    <button onClick={() => window.location.reload()} className="w-full py-3 text-slate-400 font-bold hover:text-white transition-colors text-xs tracking-widest uppercase">{t.replay}</button>
-                                </div>
+                                <button onClick={copyToClipboard} className={`w-full py-4 rounded-2xl font-black flex items-center justify-center gap-4 transition-all active:scale-95 border-2 text-base ${copyStatus ? 'bg-green-500 border-green-400 text-white' : 'bg-cyber-violet border-cyber-violet/30 text-white shadow-lg'}`}>
+                                    <Icons.Copy /> {copyStatus ? "COPIÉ !" : "PARTAGER LE SCORE"}
+                                </button>
+
+                                <button onClick={() => window.location.reload()} className="w-full mt-4 py-2 text-slate-500 font-bold hover:text-white transition-colors text-xs tracking-widest uppercase">
+                                    NOUVEAU CYCLE
+                                </button>
                             </div>
                         </div>
                     )}
