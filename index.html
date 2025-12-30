@@ -3,70 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Promptle - Le Jeu de Lettres IA</title>
-    <!-- Chargement des outils stables -->
+    <title>PROMPTLE - Le Jeu de Lettres IA</title>
+    <!-- Chargement des outils via CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
-    <!-- Configuration Tailwind pour le style futuriste -->
     <script>
         tailwind.config = {
             theme: {
                 extend: {
-                    fontFamily: {
-                        sans: ['"Space Grotesk"', 'sans-serif'],
-                    },
+                    fontFamily: { sans: ['"Space Grotesk"', 'sans-serif'] },
                     colors: {
-                        cyber: {
-                            violet: '#8B5CF6',
-                            cyan: '#06B6D4',
-                            dark: '#020617',
-                            darker: '#0B1121',
-                        }
-                    },
-                    boxShadow: {
-                        'neon-violet': '0 0 15px rgba(139,92,246,0.5), 0 0 30px rgba(139,92,246,0.3)',
-                        'neon-cyan': '0 0 15px rgba(6,182,212,0.5), 0 0 30px rgba(6,182,212,0.3)',
-                        'glass': '0 8px 32px 0 rgba(31, 38, 135, 0.37)',
+                        cyber: { violet: '#8B5CF6', cyan: '#06B6D4', dark: '#020617', darker: '#0B1121' }
                     },
                     animation: {
-                        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-                        'glitch': 'glitch 2s infinite',
-                        'scan': 'scan 4s linear infinite',
                         'pop': 'pop 0.1s ease-in-out forwards',
                         'reveal': 'reveal 0.6s ease-in-out forwards',
-                        'unlock': 'unlock 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
                     },
                     keyframes: {
-                        glitch: {
-                            '0%': { transform: 'translate(0)' },
-                            '20%': { transform: 'translate(-2px, 2px)' },
-                            '40%': { transform: 'translate(-2px, -2px)' },
-                            '60%': { transform: 'translate(2px, 2px)' },
-                            '80%': { transform: 'translate(2px, -2px)' },
-                            '100%': { transform: 'translate(0)' },
-                        },
-                        scan: {
-                            '0%': { backgroundPosition: '0 0' },
-                            '100%': { backgroundPosition: '0 100%' },
-                        },
-                        pop: {
-                            '0%': { transform: 'scale(1)' },
-                            '50%': { transform: 'scale(1.1)' },
-                            '100%': { transform: 'scale(1)' },
-                        },
-                        reveal: {
-                            '0%': { transform: 'rotateX(0)', opacity: '0.8' },
-                            '50%': { transform: 'rotateX(90deg)', opacity: '0.5' },
-                            '100%': { transform: 'rotateX(0)', opacity: '1' },
-                        },
-                        unlock: {
-                            '0%': { transform: 'scale(0) rotate(-10deg)', opacity: '0' },
-                            '100%': { transform: 'scale(1) rotate(0)', opacity: '1' },
-                        }
+                        pop: { '0%': { transform: 'scale(1)' }, '50%': { transform: 'scale(1.1)' }, '100%': { transform: 'scale(1)' } },
+                        reveal: { '0%': { transform: 'rotateX(0)', opacity: '0' }, '50%': { transform: 'rotateX(90deg)', opacity: '0.5' }, '100%': { transform: 'rotateX(0)', opacity: '1' } },
                     }
                 }
             }
@@ -75,675 +34,282 @@
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;500;700&display=swap');
-
         body {
             font-family: 'Space Grotesk', sans-serif;
             background-color: #020617;
-            background-image:
-                radial-gradient(circle at 50% 0%, rgba(139, 92, 246, 0.15) 0%, transparent 50%),
-                radial-gradient(circle at 100% 100%, rgba(6, 182, 212, 0.15) 0%, transparent 50%),
-                linear-gradient(to bottom, #020617, #0B1121);
-            margin: 0;
-            padding: 0;
             color: #f1f5f9;
-            min-height: 100vh;
-            /* Empêcher le rebond élastique sur iOS */
             overscroll-behavior: none;
+            height: 100vh;
+            overflow: hidden;
         }
-
         .bg-grid {
-            background-size: 50px 50px;
-            background-image:
-                linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-                linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
-            mask-image: radial-gradient(circle at center, black 40%, transparent 100%);
+            background-size: 40px 40px;
+            background-image: linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px), linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
         }
-
         .glass-panel {
-            background: rgba(11, 17, 33, 0.85); /* Plus opaque pour la lisibilité */
+            background: rgba(11, 17, 33, 0.9);
             backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.5);
         }
+        .pb-safe-extra { padding-bottom: calc(env(safe-area-inset-bottom) + 15px); }
 
-        .scanlines::before {
-            content: "";
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(
-                to bottom,
-                transparent 50%,
-                rgba(0, 0, 0, 0.2) 51%
-            );
-            background-size: 100% 4px;
-            pointer-events: none;
-            z-index: 2;
-        }
-
-        .trophy-locked { filter: grayscale(100%) opacity(0.3); }
-
-        /* GESTION SAFE AREA MOBILE */
-        .pb-safe-extra {
-            padding-bottom: calc(env(safe-area-inset-bottom) + 20px);
-        }
+        /* Classes de flou progressif */
+        .blur-lvl-0 { filter: blur(35px) grayscale(100%); }
+        .blur-lvl-1 { filter: blur(20px) grayscale(70%); }
+        .blur-lvl-2 { filter: blur(12px) grayscale(40%); }
+        .blur-lvl-3 { filter: blur(6px) grayscale(10%); }
+        .blur-lvl-4 { filter: blur(0px) grayscale(0%); }
     </style>
 </head>
-<body class="bg-grid overflow-x-hidden fixed inset-0">
-    <div id="root" class="h-full overflow-y-auto"></div>
+<body class="bg-grid">
+    <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, useCallback } = React;
+        const { useState, useEffect, useCallback, useMemo } = React;
 
-        // --- COMPOSANTS ICONES ---
+        // --- ICONES SVG ---
         const Icons = {
-            Sparkles: ({ className = "" }) => (
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>
-            ),
-            Trophy: ({ size = 20, className = "" }) => (
-                <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
-            ),
-            Share2: ({ className = "" }) => (
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-            ),
-            Info: ({ className = "" }) => (
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-            ),
-            Delete: ({ className = "" }) => (
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M20 5H9l-7 7 7 7h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Z"/><line x1="18" y1="9" x2="12" y2="15"/><line x1="12" y1="9" x2="18" y2="15"/></svg>
-            ),
-            CornerDownLeft: ({ className = "" }) => (
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="9 10 4 15 9 20"/><path d="M20 4v7a4 4 0 0 1-4 4H4"/></svg>
-            ),
-            Loader2: ({ size = 48, className = "" }) => (
-                <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`animate-spin ${className}`}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
-            ),
-            Database: ({ className = "" }) => (
-                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/></svg>
-            ),
-            User: ({ className = "" }) => (
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-            ),
-            Globe: ({ className = "" }) => (
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-            ),
-            Lock: ({ className = "" }) => (
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-            ),
-            Zap: ({ className = "" }) => (
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-            ),
-            Crosshair: ({ className = "" }) => (
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><line x1="22" y1="12" x2="18" y2="12"/><line x1="6" y1="12" x2="2" y2="12"/><line x1="12" y1="6" x2="12" y2="2"/><line x1="12" y1="22" x2="12" y2="18"/></svg>
-            )
+            Sparkles: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>,
+            Trophy: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>,
+            Share: () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>,
+            Copy: () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>,
+            Delete: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 5H9l-7 7 7 7h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Z"/><line x1="18" y1="9" x2="12" y2="15"/><line x1="12" y1="9" x2="18" y2="15"/></svg>,
+            Refresh: () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>,
+            User: () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
         };
 
         // --- TRADUCTIONS ---
         const TRANSLATIONS = {
             fr: {
-                title: "Promptle",
-                visualClue: "Indice Visuel IA",
-                correct: "Correct",
-                misplaced: "Mal placé",
-                init: "Initialisation du système...",
-                connErr: "Erreur de connexion",
-                reqUnits: (n) => `Requiert ${n} unités`,
-                win: "Système purifié !",
-                loss: (w) => `Échec. Cible : ${w}`,
-                target: "Cible",
-                replay: "Initialiser Nouveau Cycle",
-                share: "Partager Données",
-                trophyRoom: "Salle des Trophées",
-                wins: "Victoires",
-                streak: "Série",
-                max: "Max",
-                enterPseudo: "ENTREZ VOTRE PSEUDO",
-                agent: "AGENT",
-                unlock: "Succès Déverrouillé",
-                achievements: {
-                    FIRST_BLOOD: { title: 'Premier Éclat', desc: 'Décrypter un premier mot.' },
-                    STREAK_5: { title: 'Surcharge', desc: '5 victoires consécutives.' },
-                    STREAK_30: { title: 'Divinité', desc: '30 victoires consécutives.' },
-                    SNIPER: { title: 'One Shot', desc: 'Trouver du premier coup.' }
-                }
+                clue: "MISE AU POINT", win: "PRÉDICTION RÉUSSIE", loss: "SIGNAL PERDU",
+                shareClassic: "PARTAGER LE LIEN", shareCompact: "COPIER EMOJIS (TIKTOK)",
+                copied: "COPIÉ !", replay: "NOUVEAU CYCLE", target: "MOT DU JOUR", agent: "AGENT"
             },
             en: {
-                title: "Promptle",
-                visualClue: "AI Visual Clue",
-                correct: "Correct",
-                misplaced: "Misplaced",
-                init: "System initialization...",
-                connErr: "Connection error",
-                reqUnits: (n) => `Requires ${n} units`,
-                win: "System Purified!",
-                loss: (w) => `Failure. Target: ${w}`,
-                target: "Target",
-                replay: "Initialize New Cycle",
-                share: "Share Data",
-                trophyRoom: "Trophy Room",
-                wins: "Wins",
-                streak: "Streak",
-                max: "Max",
-                enterPseudo: "ENTER USERNAME",
-                agent: "AGENT",
-                unlock: "Achievement Unlocked",
-                achievements: {
-                    FIRST_BLOOD: { title: 'First Spark', desc: 'Decrypt your first word.' },
-                    STREAK_5: { title: 'Overload', desc: '5 consecutive victories.' },
-                    STREAK_30: { title: 'Divinity', desc: '30 consecutive victories.' },
-                    SNIPER: { title: 'One Shot', desc: 'Find the word on first try.' }
-                }
+                clue: "ADJUSTING FOCUS", win: "PREDICTION SUCCESS", loss: "SIGNAL LOST",
+                shareClassic: "SHARE LINK", shareCompact: "COPY EMOJIS (TIKTOK)",
+                copied: "COPIED!", replay: "NEW CYCLE", target: "TARGET WORD", agent: "AGENT"
             }
         };
 
-        const ACHIEVEMENTS_IDS = ['FIRST_BLOOD', 'STREAK_5', 'STREAK_30', 'SNIPER'];
-
         const MAX_ATTEMPTS = 6;
-        const KEYBOARD_ROWS = [
-            ['A', 'Z', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],
-            ['Q', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', 'M'],
-            ['ENTER', 'W', 'X', 'C', 'V', 'B', 'N', 'DELETE']
-        ];
+        const KEYBOARD = [['A','Z','E','R','T','Y','U','I','O','P'],['Q','S','D','F','G','H','J','K','L','M'],['ENTER','W','X','C','V','B','N','DELETE']];
 
-        const KEYBOARD_QWERTY = [
-            ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],
-            ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'],
-            ['ENTER', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', 'DELETE']
-        ];
-
-        // --- CONFIGURATION SUPABASE ---
-        // ATTENTION: Remets tes clés ci-dessous !
-        const SUPABASE_URL = "https://jxbtymcfsqxshmvanrbr.supabase.co";
-        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp4YnR5bWNmc3F4c2htdmFucmJyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcwMjAxMzUsImV4cCI6MjA4MjU5NjEzNX0.5hjR_k9Mz3SElQgqiLiHOwqgespnKmvm05X4IuQStfI";
-
-        let supabaseClient = null;
-        const isConfigured = SUPABASE_URL.includes("supabase.co");
-        if (isConfigured) {
-            try {
-                supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-            } catch(e) { console.error("Erreur init Supabase", e); }
-        }
-
-        const LOCAL_STORAGE_KEY_BASE = 'promptle_state';
-        const USERNAME_KEY = 'promptle_username';
-        const USER_ID_KEY = 'promptle_userid';
-        const STATS_KEY_BASE = 'promptle_stats';
+        // --- CONFIGURATION SUPABASE (A REMPLIR) ---
+        const SUPABASE_URL = "https://jxbtymcfsqxshmvanrbr.supabase.co"; // Ton URL Supabase
+        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp4YnR5bWNmc3F4c2htdmFucmJyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcwMjAxMzUsImV4cCI6MjA4MjU5NjEzNX0.5hjR_k9Mz3SElQgqiLiHOwqgespnKmvm05X4IuQStfI"; // Ta clé publique anon
 
         function App() {
-            // Options
-            const [lang, setLang] = useState('fr'); // 'fr' | 'en'
-            const t = TRANSLATIONS[lang];
-
-            // État du jeu
-            const [targetWord, setTargetWord] = useState('');
-            const [dailyImage, setDailyImage] = useState('');
+            const [lang, setLang] = useState('fr');
+            const [gameState, setGameState] = useState('playing');
+            const [attempts, setAttempts] = useState(0);
             const [guesses, setGuesses] = useState(Array(MAX_ATTEMPTS).fill(''));
             const [currentGuess, setCurrentGuess] = useState('');
-            const [attempts, setAttempts] = useState(0);
-            const [gameState, setGameState] = useState('loading');
-            const [message, setMessage] = useState('');
+            const [targetWord, setTargetWord] = useState('PROMPT');
+            const [dailyImage, setDailyImage] = useState('https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&q=80&w=800');
             const [usedLetters, setUsedLetters] = useState({});
+            const [copyStatus, setCopyStatus] = useState(null);
+            const [username, setUsername] = useState(localStorage.getItem('promptle_username') || '');
 
-            // État Joueur & Stats
-            const [username, setUsername] = useState('');
-            const [userId, setUserId] = useState('');
-            const [inputUsername, setInputUsername] = useState('');
-            const [stats, setStats] = useState({ totalWins: 0, currentStreak: 0, maxStreak: 0, lastWinDate: null, unlockedTrophies: [] });
+            const t = TRANSLATIONS[lang];
 
-            // UI
-            const [showTrophies, setShowTrophies] = useState(false);
-            const [newUnlock, setNewUnlock] = useState(null);
-
-            // Charger les données du jeu pour la langue actuelle
-            const loadGameData = async (currentLang) => {
-                setGameState('loading');
-                const today = new Date().toISOString().split('T')[0];
-                const storageKey = `${LOCAL_STORAGE_KEY_BASE}_${currentLang}`;
-                const statsKey = `${STATS_KEY_BASE}_${currentLang}`;
-
-                // 1. Charger Stats
-                const savedStats = localStorage.getItem(statsKey);
-                if (savedStats) setStats(JSON.parse(savedStats));
-                else setStats({ totalWins: 0, currentStreak: 0, maxStreak: 0, lastWinDate: null, unlockedTrophies: [] });
-
-                // 2. Charger Jeu
-                const savedStateStr = localStorage.getItem(storageKey);
-                if (savedStateStr) {
-                    try {
-                        const parsed = JSON.parse(savedStateStr);
-                        if (parsed.date === today) {
-                            setTargetWord(parsed.targetWord);
-                            setDailyImage(parsed.dailyImage);
-                            setGuesses(parsed.guesses);
-                            setAttempts(parsed.attempts);
-                            setGameState(parsed.gameState);
-                            setUsedLetters(parsed.usedLetters);
-                            return;
-                        }
-                    } catch (e) { console.error(e); }
-                }
-
-                // 3. Nouveau mot depuis Supabase ou Fallback
-                let word = currentLang === 'fr' ? "PROMPT" : "CYBORG";
-                let image = currentLang === 'fr'
-                    ? "https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&q=80&w=800"
-                    : "https://images.unsplash.com/photo-1535378437323-9555f374eb3b?auto=format&fit=crop&q=80&w=800";
-
-                if (isConfigured) {
-                    try {
-                        const { data } = await supabaseClient
-                            .from('daily_challenges')
-                            .select('*')
-                            .eq('publish_date', today)
-                            .maybeSingle();
-                        if (data) {
-                            // Gestion des colonnes par langue
-                            if (currentLang === 'en' && data.word_en) {
-                                word = data.word_en.toUpperCase();
-                                image = data.image_url_en || data.image_url;
-                            } else {
-                                word = data.word.toUpperCase();
-                                image = data.image_url;
-                            }
-                        }
-                    } catch (err) { console.error(err); }
-                }
-
-                setTargetWord(word);
-                setDailyImage(image);
-                setGuesses(Array(MAX_ATTEMPTS).fill(''));
-                setAttempts(0);
-                setGameState('playing');
-                setUsedLetters({});
-                setCurrentGuess('');
-            };
-
-            // Init global (User ID + premier chargement)
+            // Chargement dynamique depuis Supabase
             useEffect(() => {
-                let savedUserId = localStorage.getItem(USER_ID_KEY);
-                if (!savedUserId) {
-                    savedUserId = crypto.randomUUID();
-                    localStorage.setItem(USER_ID_KEY, savedUserId);
-                }
-                setUserId(savedUserId);
+                const fetchDailyChallenge = async () => {
+                    if (!SUPABASE_URL) return;
+                    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                    const today = new Date().toISOString().split('T')[0];
 
-                const savedUsername = localStorage.getItem(USERNAME_KEY);
-                if (savedUsername) setUsername(savedUsername);
+                    const { data, error } = await supabase
+                        .from('daily_challenges')
+                        .select('*')
+                        .eq('publish_date', today)
+                        .maybeSingle();
 
-                loadGameData('fr'); // Charge FR par défaut
-            }, []);
-
-            // Changement de langue
-            const switchLanguage = (newLang) => {
-                if (newLang === lang) return;
-                setLang(newLang);
-                loadGameData(newLang);
-            };
-
-            const saveGameState = useCallback(() => {
-                if (gameState === 'loading') return;
-                const today = new Date().toISOString().split('T')[0];
-                const storageKey = `${LOCAL_STORAGE_KEY_BASE}_${lang}`;
-                localStorage.setItem(storageKey, JSON.stringify({
-                    date: today, targetWord, dailyImage, guesses, attempts, gameState, usedLetters
-                }));
-            }, [lang, gameState, targetWord, dailyImage, guesses, attempts, usedLetters]);
-
-            useEffect(() => {
-                saveGameState();
-            }, [saveGameState]);
-
-            const saveUsername = (name) => {
-                const cleanName = name.trim().slice(0, 15);
-                if (cleanName) {
-                    setUsername(cleanName);
-                    localStorage.setItem(USERNAME_KEY, cleanName);
-                }
-            };
-
-            // --- LOGIQUE TROPHEES ---
-            const checkAchievements = (currentStats, winAttempts) => {
-                const newUnlocked = [...(currentStats.unlockedTrophies || [])];
-                let justUnlockedId = null;
-
-                const unlock = (id) => {
-                    if (!newUnlocked.includes(id)) {
-                        newUnlocked.push(id);
-                        justUnlockedId = id;
+                    if (data) {
+                        if (lang === 'en' && data.word_en) {
+                            setTargetWord(data.word_en.toUpperCase());
+                            setDailyImage(data.image_url_en || data.image_url);
+                        } else {
+                            setTargetWord(data.word.toUpperCase());
+                            setDailyImage(data.image_url);
+                        }
                     }
                 };
+                fetchDailyChallenge();
+            }, [lang]);
 
-                if (currentStats.totalWins >= 1) unlock('FIRST_BLOOD');
-                if (currentStats.currentStreak >= 5) unlock('STREAK_5');
-                if (currentStats.currentStreak >= 30) unlock('STREAK_30');
-                if (winAttempts === 0) unlock('SNIPER');
-
-                if (justUnlockedId) {
-                    const achData = TRANSLATIONS[lang].achievements[justUnlockedId];
-                    setNewUnlock({ ...achData, icon: getAchievementIcon(justUnlockedId) });
-                    setTimeout(() => setNewUnlock(null), 4000);
-                }
-
-                return newUnlocked;
-            };
-
-            const getAchievementIcon = (id) => {
-                const map = { 'FIRST_BLOOD': Icons.Sparkles, 'STREAK_5': Icons.Zap, 'STREAK_30': Icons.Trophy, 'SNIPER': Icons.Crosshair };
-                return map[id] || Icons.Lock;
-            };
+            // Calcul du niveau de flou (Progressive Blur)
+            const blurClass = useMemo(() => {
+                if (gameState !== 'playing') return 'blur-lvl-4';
+                if (attempts === 0) return 'blur-lvl-0'; // 35px
+                if (attempts === 1) return 'blur-lvl-1'; // 20px
+                if (attempts === 2) return 'blur-lvl-2'; // 12px
+                if (attempts === 3) return 'blur-lvl-3'; // 5px
+                return 'blur-lvl-4'; // 0px
+            }, [attempts, gameState]);
 
             const submitGuess = useCallback(() => {
-                if (gameState !== 'playing') return;
-
-                const currentLength = targetWord.length || 6;
-                if (currentGuess.length !== currentLength) {
-                    setMessage(t.reqUnits(currentLength));
-                    setTimeout(() => setMessage(''), 2000);
-                    return;
-                }
-
+                if (currentGuess.length !== targetWord.length) return;
                 const newGuesses = [...guesses];
                 newGuesses[attempts] = currentGuess;
-
-                const newUsedLetters = { ...usedLetters };
-                currentGuess.split('').forEach((letter, i) => {
-                    if (targetWord[i] === letter) newUsedLetters[letter] = 'correct';
-                    else if (targetWord.includes(letter) && newUsedLetters[letter] !== 'correct') newUsedLetters[letter] = 'present';
-                    else if (!targetWord.includes(letter) && !newUsedLetters[letter]) newUsedLetters[letter] = 'absent';
-                });
-
-                let newGameState = 'playing';
-                let newMessage = '';
-
-                if (currentGuess === targetWord) {
-                    newGameState = 'won';
-                    newMessage = t.win;
-
-                    // Stats update
-                    const today = new Date().toISOString().split('T')[0];
-                    const newStats = { ...stats };
-
-                    if (newStats.lastWinDate) {
-                        const lastDate = new Date(newStats.lastWinDate);
-                        const currentDate = new Date(today);
-                        const diffTime = Math.abs(currentDate - lastDate);
-                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                        if (diffDays === 1) newStats.currentStreak += 1;
-                        else if (diffDays > 1) newStats.currentStreak = 1;
-                    } else {
-                        newStats.currentStreak = 1;
-                    }
-
-                    newStats.totalWins += 1;
-                    newStats.maxStreak = Math.max(newStats.maxStreak, newStats.currentStreak);
-                    newStats.lastWinDate = today;
-                    newStats.unlockedTrophies = checkAchievements(newStats, attempts);
-
-                    setStats(newStats);
-                    localStorage.setItem(`${STATS_KEY_BASE}_${lang}`, JSON.stringify(newStats));
-
-                } else if (attempts + 1 >= MAX_ATTEMPTS) {
-                    newGameState = 'lost';
-                    newMessage = t.loss(targetWord);
-
-                    const newStats = { ...stats, currentStreak: 0 };
-                    setStats(newStats);
-                    localStorage.setItem(`${STATS_KEY_BASE}_${lang}`, JSON.stringify(newStats));
-                }
-
                 setGuesses(newGuesses);
-                setUsedLetters(newUsedLetters);
-                setGameState(newGameState);
-                if(newMessage) setMessage(newMessage);
 
-                if (newGameState === 'playing') {
+                const newUsed = {...usedLetters};
+                currentGuess.split('').forEach((l, i) => {
+                    if (targetWord[i] === l) newUsed[l] = 'correct';
+                    else if (targetWord.includes(l) && newUsed[l] !== 'correct') newUsed[l] = 'present';
+                    else if (!targetWord.includes(l) && !newUsed[l]) newUsed[l] = 'absent';
+                });
+                setUsedLetters(newUsed);
+
+                if (currentGuess === targetWord) setGameState('won');
+                else if (attempts + 1 >= MAX_ATTEMPTS) setGameState('lost');
+                else {
                     setAttempts(prev => prev + 1);
                     setCurrentGuess('');
                 }
+            }, [currentGuess, targetWord, attempts, guesses, usedLetters]);
 
-            }, [currentGuess, attempts, gameState, guesses, usedLetters, targetWord, stats, lang, t]);
+            const getEmojiGrid = () => {
+                return guesses.slice(0, gameState === 'won' ? attempts + 1 : MAX_ATTEMPTS)
+                    .map(g => {
+                        if (!g) return "";
+                        return g.split('').map((l, i) => {
+                            if (targetWord[i] === l) return "🟪";
+                            if (targetWord.includes(l)) return "🟦";
+                            return "⬛";
+                        }).join('');
+                    }).filter(x => x).join('\n');
+            };
 
-            const handleInput = useCallback((key) => {
-                if (gameState !== 'playing') return;
-                const currentLength = targetWord.length || 6;
-                if (key === 'ENTER') submitGuess();
-                else if (key === 'DELETE' || key === 'Backspace') setCurrentGuess(prev => prev.slice(0, -1));
-                else if (/^[a-zA-Z]$/.test(key) && currentGuess.length < currentLength) {
-                    if (usedLetters[key] === 'absent') return;
-                    setCurrentGuess(prev => (prev + key).toUpperCase());
+            const copyToClipboard = (type) => {
+                const day = Math.floor(Date.now() / 86400000) - 19700;
+                const grid = getEmojiGrid();
+                let text = grid;
+
+                if (type === 'classic') {
+                    text = `PROMPTLE #${day} ${lang.toUpperCase()}\n${gameState === 'won' ? attempts + 1 : 'X'}/6\n${grid}\n👉 promptle.netlify.app`;
                 }
-            }, [currentGuess, gameState, submitGuess, targetWord, usedLetters]);
 
-            useEffect(() => {
-                const onKeyDown = (e) => {
-                    if (e.ctrlKey || e.metaKey) return;
-                    handleInput(e.key === 'Enter' ? 'ENTER' : e.key === 'Backspace' ? 'DELETE' : e.key.toUpperCase());
-                };
-                window.addEventListener('keydown', onKeyDown);
-                return () => window.removeEventListener('keydown', onKeyDown);
-            }, [handleInput]);
+                const textArea = document.createElement("textarea");
+                textArea.value = text;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
 
-            const getGuessStatuses = (guess, target) => {
-                const status = Array(guess.length).fill('absent');
-                const targetArray = target.split('');
-                const guessArray = guess.split('');
-                const letterCounts = {};
-                targetArray.forEach(l => letterCounts[l] = (letterCounts[l] || 0) + 1);
-                guessArray.forEach((letter, i) => { if (letter === targetArray[i]) { status[i] = 'correct'; letterCounts[letter]--; } });
-                guessArray.forEach((letter, i) => { if (status[i] !== 'correct' && letterCounts[letter] > 0) { status[i] = 'present'; letterCounts[letter]--; } });
-                return status;
+                setCopyStatus(type);
+                setTimeout(() => setCopyStatus(null), 3000);
             };
 
-            const getLetterStyle = (guess, index, rowIndex) => {
-                if (rowIndex === attempts && gameState === 'playing') return currentGuess[index] ? "border-cyber-violet/50 bg-cyber-darker/80 text-white animate-pop shadow-neon-violet/20 backdrop-blur-sm" : "border-cyber-darker bg-cyber-darker/30 text-transparent";
-                if (!guess) return "border-cyber-darker bg-cyber-darker/30 text-transparent";
-                const statuses = getGuessStatuses(guess, targetWord);
-                const status = statuses[index];
-                let colorClass = "bg-cyber-darker/80 border-cyber-darker text-slate-600 opacity-50";
-                if (status === 'correct') colorClass = "bg-cyber-violet border-cyber-violet text-white shadow-neon-violet";
-                if (status === 'present') colorClass = "bg-cyber-cyan border-cyber-cyan text-white shadow-neon-cyan";
-                return `animate-reveal ${colorClass}`;
+            const getLetterStyle = (g, i, row) => {
+                if (row === attempts && gameState === 'playing') return currentGuess[i] ? "border-cyber-violet bg-cyber-darker text-white animate-pop" : "border-slate-800 bg-slate-900/40";
+                if (!g) return "border-slate-800 bg-slate-900/40";
+                const l = g[i];
+                if (targetWord[i] === l) return "bg-cyber-violet border-cyber-violet text-white animate-reveal";
+                if (targetWord.includes(l)) return "bg-cyber-cyan border-cyber-cyan text-white animate-reveal";
+                return "bg-slate-800 border-slate-800 text-slate-500 opacity-40 animate-reveal";
             };
-
-            const getKeyStyle = (key) => {
-                const status = usedLetters[key];
-                if (status === 'absent') return "bg-cyber-darker/30 text-slate-700 border-slate-800/20 opacity-40 cursor-not-allowed";
-                return "bg-cyber-darker/50 text-slate-300 border-slate-800/50 hover:bg-slate-800 hover:border-cyber-violet/50 hover:text-white hover:shadow-neon-violet/20";
-            };
-
-            // Choix du layout clavier selon langue
-            const activeKeyboard = lang === 'en' ? KEYBOARD_QWERTY : KEYBOARD_ROWS;
-            const currentLength = targetWord.length || 6;
-
-            if (gameState === 'loading') return <div className="min-h-screen flex flex-col items-center justify-center relative z-10"><Icons.Loader2 className="text-cyber-violet mb-4 animate-spin shadow-neon-violet" size={64} /><p className="text-xs font-black tracking-[0.3em] text-cyber-cyan uppercase animate-pulse">{t.init}</p></div>;
 
             return (
-                <div className="min-h-screen text-slate-100 flex flex-col items-center select-none overflow-x-hidden relative z-10 pb-safe-extra">
-                    <header className="w-full max-w-lg flex justify-between items-center p-4 md:p-6 mb-2 glass-panel rounded-b-3xl border-t-0 sticky top-0 z-20">
-                        {/* SELECTEUR LANGUE */}
+                <div className="flex flex-col h-full max-w-lg mx-auto p-4 md:p-6 pb-safe-extra relative">
+                    <header className="flex justify-between items-center mb-4">
+                        <div className="flex items-center gap-2">
+                            <div className="bg-cyber-violet p-1.5 rounded-lg shadow-lg shadow-cyber-violet/20"><Icons.Sparkles /></div>
+                            <h1 className="text-xl font-black tracking-tighter italic uppercase">PROMPTLE</h1>
+                        </div>
                         <div className="flex gap-2">
-                            <button onClick={() => switchLanguage('fr')} className={`text-[10px] font-black px-2 py-1 rounded transition-all ${lang === 'fr' ? 'bg-cyber-violet text-white shadow-neon-violet' : 'bg-cyber-darker text-slate-500'}`}>FR</button>
-                            <button onClick={() => switchLanguage('en')} className={`text-[10px] font-black px-2 py-1 rounded transition-all ${lang === 'en' ? 'bg-cyber-cyan text-white shadow-neon-cyan' : 'bg-cyber-darker text-slate-500'}`}>EN</button>
-                        </div>
-
-                        <div className="flex items-center gap-2 group absolute left-1/2 -translate-x-1/2">
-                            <div className="bg-gradient-to-br from-cyber-violet to-cyber-cyan p-1.5 rounded-lg shadow-neon-violet/50">
-                                <Icons.Sparkles className="text-white w-4 h-4" />
-                            </div>
-                            <h1 className="text-xl font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-white via-cyber-cyan to-cyber-violet uppercase italic hidden md:block">Promptle</h1>
-                        </div>
-
-                        <div className="flex gap-3 text-slate-400">
-                             <div className="p-2 hover:text-cyber-cyan hover:bg-cyber-darker/50 rounded-xl cursor-pointer transition-all border border-transparent hover:border-cyber-cyan/30"><Icons.Info /></div>
-                             <div onClick={() => setShowTrophies(true)} className="p-2 hover:text-cyber-violet hover:bg-cyber-darker/50 rounded-xl cursor-pointer transition-all border border-transparent hover:border-cyber-violet/30"><Icons.Trophy /></div>
+                            <button onClick={() => setLang(lang === 'fr' ? 'en' : 'fr')} className="text-[10px] font-bold px-2 py-1 glass-panel rounded uppercase">{lang}</button>
+                            <div className="p-2 text-slate-500"><Icons.Trophy /></div>
                         </div>
                     </header>
 
-                    {newUnlock && (
-                        <div className="fixed top-24 left-1/2 -translate-x-1/2 z-50 animate-unlock pointer-events-none w-max">
-                            <div className="glass-panel bg-cyber-darker border-cyber-violet/50 px-6 py-4 rounded-2xl shadow-neon-violet flex items-center gap-4">
-                                <div className="bg-cyber-violet/20 p-2 rounded-full">
-                                    <newUnlock.icon className="text-cyber-violet w-8 h-8" />
-                                </div>
-                                <div>
-                                    <p className="text-[10px] text-cyber-cyan font-bold tracking-widest uppercase">{t.unlock}</p>
-                                    <p className="text-white font-black italic text-lg tracking-wider">{newUnlock.title}</p>
-                                </div>
-                            </div>
+                    <div className="relative rounded-2xl overflow-hidden aspect-[4/3] mb-4 border border-white/5 shadow-2xl">
+                        <img src={dailyImage} className={`w-full h-full object-cover transition-all duration-1000 ${blurClass}`} />
+                        <div className="absolute inset-0 bg-gradient-to-t from-cyber-dark/80 via-transparent to-transparent"></div>
+                        <div className="absolute bottom-3 left-3 flex items-center gap-2">
+                            <span className="text-[9px] font-black tracking-widest uppercase bg-cyber-dark/60 backdrop-blur-md px-2 py-1 rounded border border-white/10 text-cyber-cyan">
+                                <span className="inline-block w-1.5 h-1.5 bg-cyber-cyan rounded-full mr-1.5 animate-pulse"></span>
+                                {t.clue}
+                            </span>
                         </div>
-                    )}
+                    </div>
 
-                    {showTrophies && (
-                        <div className="fixed inset-0 bg-cyber-dark/95 backdrop-blur-xl z-50 flex items-center justify-center p-4 animate-pop">
-                            <div className="glass-panel w-full max-w-sm rounded-[2rem] border-cyber-cyan/30 flex flex-col max-h-[80vh]">
-                                <div className="p-6 border-b border-white/5 flex justify-between items-center">
-                                    <h2 className="text-xl font-black uppercase italic tracking-wider text-white">{t.trophyRoom}</h2>
-                                    <button onClick={() => setShowTrophies(false)} className="p-2 hover:bg-white/10 rounded-full"><Icons.Delete className="w-5 h-5 rotate-45" /></button>
-                                </div>
-                                <div className="p-6 overflow-y-auto space-y-4">
-                                    <div className="grid grid-cols-3 gap-2 mb-6">
-                                        <div className="bg-cyber-darker p-3 rounded-xl text-center border border-white/5">
-                                            <div className="text-xs text-slate-500 uppercase font-bold">{t.wins}</div>
-                                            <div className="text-xl font-black text-cyber-cyan">{stats.totalWins}</div>
-                                        </div>
-                                        <div className="bg-cyber-darker p-3 rounded-xl text-center border border-white/5">
-                                            <div className="text-xs text-slate-500 uppercase font-bold">{t.streak}</div>
-                                            <div className="text-xl font-black text-cyber-violet">{stats.currentStreak}</div>
-                                        </div>
-                                        <div className="bg-cyber-darker p-3 rounded-xl text-center border border-white/5">
-                                            <div className="text-xs text-slate-500 uppercase font-bold">{t.max}</div>
-                                            <div className="text-xl font-black text-white">{stats.maxStreak}</div>
-                                        </div>
+                    <div className="flex-1 flex flex-col justify-center gap-2 mb-6">
+                        {guesses.map((g, row) => (
+                            <div key={row} className="flex justify-center gap-1.5">
+                                {Array.from({length: targetWord.length}).map((_, i) => (
+                                    <div key={i} className={`w-12 h-12 md:w-14 md:h-14 border-2 rounded-xl flex items-center justify-center text-xl font-black transition-all ${getLetterStyle(g, i, row)}`}>
+                                        {(row === attempts ? currentGuess[i] : g[i]) || ''}
                                     </div>
-
-                                    {ACHIEVEMENTS_IDS.map(id => {
-                                        const achData = t.achievements[id];
-                                        const isUnlocked = (stats.unlockedTrophies || []).includes(id);
-                                        const IconComp = getAchievementIcon(id);
-                                        return (
-                                            <div key={id} className={`flex items-center gap-4 p-4 rounded-xl border transition-all ${isUnlocked ? 'bg-cyber-violet/10 border-cyber-violet/50 shadow-neon-violet/20' : 'bg-cyber-darker border-white/5 opacity-50'}`}>
-                                                <div className={`p-3 rounded-full ${isUnlocked ? 'bg-cyber-violet text-white' : 'bg-cyber-dark text-slate-600'}`}>
-                                                    {isUnlocked ? <IconComp className="w-6 h-6" /> : <Icons.Lock className="w-6 h-6" />}
-                                                </div>
-                                                <div>
-                                                    <h3 className={`font-bold uppercase tracking-wider text-sm ${isUnlocked ? 'text-white' : 'text-slate-500'}`}>{achData.title}</h3>
-                                                    <p className="text-[10px] text-slate-400 leading-tight mt-1">{achData.desc}</p>
-                                                </div>
-                                            </div>
-                                        )
-                                    })}
-                                </div>
+                                ))}
                             </div>
-                        </div>
-                    )}
+                        ))}
+                    </div>
 
-                    <main className="w-full max-w-md flex flex-1 flex-col gap-6 p-4">
-                        <div className="relative rounded-3xl overflow-hidden border border-cyber-violet/30 bg-cyber-darker shadow-2xl group scanlines">
-                            <img src={dailyImage} className={`w-full aspect-[4/3] object-cover transition-all duration-1000 ease-in-out ${gameState === 'playing' ? 'blur-xl grayscale scale-110 opacity-80 group-hover:opacity-100 group-hover:blur-md group-hover:scale-105' : 'blur-none grayscale-0 scale-100 opacity-100'}`} />
-                            <div className="absolute inset-0 bg-gradient-to-t from-cyber-dark via-cyber-dark/50 to-transparent pointer-events-none"></div>
-                            <div className="absolute bottom-4 left-4 pointer-events-none">
-                                <span className="glass-panel border-cyber-cyan/30 px-3 py-1.5 rounded-full text-[10px] text-cyber-cyan font-bold tracking-[0.2em] uppercase shadow-neon-cyan/20 flex items-center gap-2">
-                                    <span className="w-2 h-2 bg-cyber-cyan rounded-full animate-pulse"></span>
-                                    {t.visualClue}
-                                </span>
+                    <div className="grid gap-1.5">
+                        {KEYBOARD.map((row, i) => (
+                            <div key={i} className="flex justify-center gap-1">
+                                {row.map(k => {
+                                    const status = usedLetters[k];
+                                    const isSpecial = k === 'ENTER' || k === 'DELETE';
+                                    let style = "bg-slate-800 text-white";
+                                    if (status === 'absent') style = "bg-slate-950 text-slate-700 opacity-40";
+                                    if (isSpecial) style = "bg-slate-700 px-4 min-w-[60px]";
+                                    return (
+                                        <button key={k} onClick={() => {
+                                            if (k === 'ENTER') submitGuess();
+                                            else if (k === 'DELETE') setCurrentGuess(prev => prev.slice(0, -1));
+                                            else if (currentGuess.length < targetWord.length) setCurrentGuess(prev => prev + k);
+                                        }} className={`h-14 rounded-lg font-bold text-xs active:scale-90 transition-transform ${style}`}>
+                                            {k === 'DELETE' ? <Icons.Delete /> : k}
+                                        </button>
+                                    );
+                                })}
                             </div>
-                        </div>
-
-                        <div className="h-8 flex items-center justify-center">
-                            <div className={`text-xs font-black text-cyber-violet uppercase tracking-[0.2em] transition-all duration-300 ${message ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}>
-                                {message && <span className="glass-panel border-cyber-violet/50 px-4 py-2 rounded-full shadow-neon-violet/30">{message}</span>}
-                            </div>
-                        </div>
-
-                        <div className="flex flex-col gap-2 flex-1 justify-center">
-                            {guesses.map((guess, i) => (
-                                <div key={i} className="flex justify-center gap-1.5">
-                                    {Array.from({ length: currentLength }).map((_, j) => {
-                                        const styleClass = getLetterStyle(guess, j, i);
-                                        const isValidatedRow = i < attempts;
-                                        const delay = isValidatedRow ? { animationDelay: `${j * 150}ms` } : {};
-
-                                        return (
-                                            <div key={j} style={delay} className={`w-11 h-11 md:w-14 md:h-14 border-2 rounded-xl flex items-center justify-center text-2xl font-black transition-all duration-300 backdrop-blur-md ${styleClass}`}>
-                                                {(i === attempts ? currentGuess[j] : guess[j]) || ''}
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            ))}
-                        </div>
-
-                        <div className="flex justify-center gap-6 py-2">
-                             <div className="flex items-center gap-2">
-                                 <div className="w-3 h-3 rounded-full bg-cyber-violet shadow-neon-violet"></div>
-                                 <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">{t.correct}</span>
-                             </div>
-                             <div className="flex items-center gap-2">
-                                 <div className="w-3 h-3 rounded-full bg-cyber-cyan shadow-neon-cyan"></div>
-                                 <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">{t.misplaced}</span>
-                             </div>
-                        </div>
-
-                        <div className="mt-auto flex flex-col gap-2 pb-6 w-full px-1">
-                            {activeKeyboard.map((row, i) => (
-                                <div key={i} className="flex w-full justify-center gap-1">
-                                    {row.map(key => {
-                                        const isSpecial = key === 'ENTER' || key === 'DELETE';
-                                        return (
-                                            <button key={key} onClick={() => handleInput(key)} className={`h-14 md:h-16 rounded-xl font-bold text-sm md:text-base transition-all duration-200 active:scale-95 shadow-sm flex items-center justify-center border backdrop-blur-md ${isSpecial ? 'flex-[1.5] bg-cyber-darker text-slate-300 border-slate-700/50 hover:bg-cyber-darker/80 hover:text-white hover:border-cyber-cyan/50' : `flex-1 ${getKeyStyle(key)}`}`}>
-                                                {key === 'DELETE' ? <Icons.Delete className="w-6 h-6" /> : key === 'ENTER' ? <Icons.CornerDownLeft className="w-6 h-6" /> : key}
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-                            ))}
-                        </div>
-                    </main>
+                        ))}
+                    </div>
 
                     {gameState !== 'playing' && (
-                        <div className="fixed inset-0 bg-cyber-dark/90 backdrop-blur-xl flex items-center justify-center p-6 z-50 animate-in fade-in duration-500">
-                            <div className="glass-panel p-8 rounded-[2.5rem] text-center max-w-xs w-full shadow-2xl relative overflow-hidden border-cyber-violet/30">
-                                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-cyber-violet via-cyber-cyan to-cyber-violet animate-pulse-slow"></div>
-                                <div className="flex justify-center mb-6">
-                                    <div className="bg-gradient-to-br from-cyber-violet to-cyber-cyan p-4 rounded-2xl shadow-neon-violet/50 rotate-3 relative">
-                                        <Icons.Trophy size={48} className="text-white" />
-                                        <div className="absolute inset-0 bg-white/20 blur-xl rounded-full animate-pulse-slow"></div>
-                                    </div>
-                                </div>
-                                <h2 className="text-3xl font-black mb-2 uppercase tracking-tighter italic text-transparent bg-clip-text bg-gradient-to-r from-white to-cyber-cyan">
-                                    {gameState === 'won' ? t.win : 'ERREUR FATALE'}
+                        <div className="fixed inset-0 bg-cyber-dark/95 backdrop-blur-xl z-50 flex items-center justify-center p-4 animate-in fade-in overflow-y-auto">
+                            <div className="glass-panel w-full max-w-sm p-6 md:p-8 rounded-[2rem] text-center shadow-2xl relative my-auto">
+                                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-cyber-violet to-cyber-cyan"></div>
+                                <h2 className="text-3xl font-black italic mb-1 uppercase tracking-tighter">
+                                    {gameState === 'won' ? t.win : t.loss}
                                 </h2>
-                                <p className="text-slate-400 mb-6 text-xs font-bold tracking-[0.2em] uppercase">
-                                    {gameState === 'won' ? t.target : t.loss(targetWord).split(':')[0]}: <span className="text-cyber-cyan font-black text-base glow-cyan">{targetWord}</span>
+                                <p className="text-slate-500 text-[10px] tracking-widest uppercase mb-4">
+                                    {t.target} : <span className="text-white font-bold">{targetWord}</span>
                                 </p>
 
-                                <div className="mb-6">
-                                    {!username ? (
-                                        <div className="relative">
-                                            <input type="text" value={inputUsername} onChange={(e) => setInputUsername(e.target.value)} placeholder={t.enterPseudo} className="w-full bg-cyber-darker border border-cyber-violet/30 rounded-xl px-4 py-3 text-center text-white font-bold uppercase tracking-wider focus:outline-none focus:border-cyber-cyan transition-colors" maxLength="15" />
-                                            <button onClick={() => saveUsername(inputUsername)} disabled={!inputUsername.trim()} className="absolute right-1 top-1 bottom-1 px-3 bg-cyber-violet rounded-lg text-white font-bold text-xs disabled:opacity-50 hover:bg-cyber-violet/80 transition-colors">OK</button>
-                                        </div>
-                                    ) : (
-                                        <div className="flex flex-col items-center justify-center gap-1 mb-2">
-                                            <div className="flex items-center gap-2 text-cyber-cyan font-bold tracking-wider">
-                                                <Icons.User className="w-4 h-4" />
-                                                <span>{t.agent}: {username}</span>
-                                            </div>
-                                            <span className="text-[9px] text-slate-600 font-mono tracking-widest">ID: {userId.slice(0, 8)}...</span>
-                                        </div>
-                                    )}
+                                <div className="bg-cyber-darker/50 p-4 rounded-2xl mb-6 border border-white/5 inline-block mx-auto">
+                                    <pre className="text-lg leading-tight tracking-[0.3em] font-mono text-center">
+                                        {getEmojiGrid()}
+                                    </pre>
                                 </div>
 
-                                <button onClick={() => window.location.reload()} className="w-full mb-3 py-4 bg-gradient-to-r from-cyber-violet to-cyber-cyan text-white rounded-2xl font-black shadow-neon-violet/50 hover:shadow-neon-cyan/50 transition-all active:scale-95 flex items-center justify-center gap-3 text-sm tracking-widest uppercase border border-white/20">
-                                    <Icons.Sparkles className="w-5 h-5" /> {t.replay}
-                                </button>
+                                <div className="space-y-3">
+                                    <button
+                                        onClick={() => copyToClipboard('compact')}
+                                        className={`w-full py-4 rounded-2xl font-black flex items-center justify-center gap-3 transition-all active:scale-95 border-2 ${copyStatus === 'compact' ? 'bg-green-500 border-green-400 text-white' : 'bg-cyber-violet border-cyber-violet/30 text-white shadow-lg shadow-cyber-violet/20'}`}
+                                    >
+                                        <Icons.Copy /> {copyStatus === 'compact' ? t.copied : t.shareCompact}
+                                    </button>
 
-                                <button className="w-full py-4 glass-panel bg-cyber-darker/50 text-white rounded-2xl font-black flex items-center justify-center gap-2 hover:bg-cyber-darker/80 transition-all active:scale-95 border-cyber-cyan/20 hover:border-cyber-cyan/50 text-sm tracking-widest uppercase">
-                                    <Icons.Share2 className="w-5 h-5" /> {t.share}
-                                </button>
+                                    <button
+                                        onClick={() => copyToClipboard('classic')}
+                                        className={`w-full py-4 rounded-2xl font-black flex items-center justify-center gap-3 transition-all active:scale-95 border-2 ${copyStatus === 'classic' ? 'bg-green-500 border-green-400 text-white' : 'bg-white border-white text-cyber-dark'}`}
+                                    >
+                                        <Icons.Share /> {copyStatus === 'classic' ? t.copied : t.shareClassic}
+                                    </button>
+
+                                    <button
+                                        onClick={() => window.location.reload()}
+                                        className="w-full py-3 rounded-2xl font-bold flex items-center justify-center gap-3 transition-all text-slate-400 hover:text-white"
+                                    >
+                                        <Icons.Refresh /> {t.replay}
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     )}
