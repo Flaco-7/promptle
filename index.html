@@ -21,9 +21,9 @@
                     },
                     animation: {
                         'pop': 'pop 0.1s ease-in-out forwards',
-                        'reveal-correct': 'reveal-correct 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards',
-                        'reveal-present': 'reveal-present 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards',
-                        'reveal-absent': 'reveal-absent 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards',
+                        'reveal-correct': 'reveal-correct 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards',
+                        'reveal-present': 'reveal-present 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards',
+                        'reveal-absent': 'reveal-absent 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards',
                     },
                     keyframes: {
                         pop: { '0%': { transform: 'scale(1)' }, '50%': { transform: 'scale(1.15)' }, '100%': { transform: 'scale(1)' } },
@@ -60,6 +60,8 @@
             overscroll-behavior: none;
             height: 100vh;
             overflow: hidden;
+            display: flex;
+            justify-content: center;
         }
         .bg-grid {
             background-size: 40px 40px;
@@ -70,29 +72,16 @@
             backdrop-filter: blur(16px);
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
-        .pb-safe-extra { padding-bottom: calc(env(safe-area-inset-bottom) + 15px); }
-
         .blur-lvl-0 { filter: blur(35px) grayscale(100%); }
         .blur-lvl-1 { filter: blur(20px) grayscale(70%); }
         .blur-lvl-2 { filter: blur(10px) grayscale(40%); }
         .blur-lvl-3 { filter: blur(5px) grayscale(10%); }
         .blur-lvl-4 { filter: blur(0px) grayscale(0%); }
-
-        /* Animation de cascade avec délais progressifs */
-        .delay-0 { animation-delay: 0ms; }
-        .delay-1 { animation-delay: 150ms; }
-        .delay-2 { animation-delay: 300ms; }
-        .delay-3 { animation-delay: 450ms; }
-        .delay-4 { animation-delay: 600ms; }
-        .delay-5 { animation-delay: 750ms; }
-        .delay-6 { animation-delay: 900ms; }
-        .delay-7 { animation-delay: 1050ms; }
-
         .perspective-1000 { perspective: 1000px; }
     </style>
 </head>
-<body class="bg-grid flex justify-center items-center">
-    <div id="root" class="w-full h-full max-w-2xl"></div>
+<body class="bg-grid">
+    <div id="root" class="w-full h-full"></div>
 
     <script type="text/babel">
         const { useState, useEffect, useCallback, useMemo } = React;
@@ -111,14 +100,14 @@
 
         const TRANSLATIONS = {
             fr: {
-                clue: "SIGNAL IA", win: "PRÉDICTION RÉUSSIE", loss: "SIGNAL PERDU",
-                shareClassic: "PARTAGER LE LIEN", shareCompact: "COPIER EMOJIS (TIKTOK)",
+                clue: "ANALYSE IA", win: "PRÉDICTION RÉUSSIE", loss: "SIGNAL PERDU",
+                shareClassic: "PARTAGER LE LIEN", shareCompact: "COPIER EMOJIS",
                 copied: "COPIÉ !", replay: "NOUVEAU CYCLE", target: "MOT DU JOUR",
-                legendCorrect: "Correct", legendPresent: "Mal placé", legendAbsent: "Absent"
+                legendCorrect: "Correct", legendPresent: "Présent", legendAbsent: "Absent"
             },
             en: {
                 clue: "AI SIGNAL", win: "PREDICTION SUCCESS", loss: "SIGNAL LOST",
-                shareClassic: "SHARE LINK", shareCompact: "COPY EMOJIS (TIKTOK)",
+                shareClassic: "SHARE LINK", shareCompact: "COPY EMOJIS",
                 copied: "COPIED!", replay: "NEW CYCLE", target: "TARGET WORD",
                 legendCorrect: "Correct", legendPresent: "Present", legendAbsent: "Absent"
             }
@@ -138,6 +127,10 @@
             const [dailyImage, setDailyImage] = useState('https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&q=80&w=800');
             const [usedLetters, setUsedLetters] = useState({});
             const [copyStatus, setCopyStatus] = useState(null);
+
+            // États pour le reveal progressif
+            const [revealingRow, setRevealingRow] = useState(null);
+            const [revealedLetters, setRevealedLetters] = useState({});
 
             const t = TRANSLATIONS[lang];
 
@@ -183,31 +176,48 @@
                 if (currentGuess.length !== targetWord.length || isAnimating) return;
 
                 setIsAnimating(true);
-                const statuses = getGuessStatuses(currentGuess, targetWord);
                 const newGuesses = [...guesses];
                 newGuesses[attempts] = currentGuess;
                 setGuesses(newGuesses);
 
-                const totalAnimationTime = (targetWord.length * 150) + 500;
+                const statuses = getGuessStatuses(currentGuess, targetWord);
 
-                setTimeout(() => {
-                    const newUsed = {...usedLetters};
-                    currentGuess.split('').forEach((l, i) => {
-                        const status = statuses[i];
-                        if (status === 'correct') newUsed[l] = 'correct';
-                        else if (status === 'present' && newUsed[l] !== 'correct') newUsed[l] = 'present';
-                        else if (status === 'absent' && !newUsed[l]) newUsed[l] = 'absent';
-                    });
-                    setUsedLetters(newUsed);
+                // Démarre le reveal progressif
+                setRevealingRow(attempts);
+                setRevealedLetters(prev => ({ ...prev, [attempts]: 0 }));
 
-                    if (currentGuess === targetWord) setGameState('won');
-                    else if (attempts + 1 >= MAX_ATTEMPTS) setGameState('lost');
-                    else {
-                        setAttempts(prev => prev + 1);
-                        setCurrentGuess('');
+                let revealedCount = 0;
+                const interval = setInterval(() => {
+                    revealedCount++;
+                    setRevealedLetters(prev => ({ ...prev, [attempts]: revealedCount }));
+
+                    if (revealedCount >= targetWord.length) {
+                        clearInterval(interval);
+
+                        // Met à jour le clavier après le dernier flip
+                        const newUsed = { ...usedLetters };
+                        currentGuess.split('').forEach((l, i) => {
+                            const status = statuses[i];
+                            if (status === 'correct') newUsed[l] = 'correct';
+                            else if (status === 'present' && newUsed[l] !== 'correct') newUsed[l] = 'present';
+                            else if (status === 'absent' && !newUsed[l]) newUsed[l] = 'absent';
+                        });
+                        setUsedLetters(newUsed);
+
+                        setTimeout(() => {
+                            if (currentGuess === targetWord) {
+                                setGameState('won');
+                            } else if (attempts + 1 >= MAX_ATTEMPTS) {
+                                setGameState('lost');
+                            } else {
+                                setAttempts(prev => prev + 1);
+                                setCurrentGuess('');
+                            }
+                            setRevealingRow(null);
+                            setIsAnimating(false);
+                        }, 500);
                     }
-                    setIsAnimating(false);
-                }, totalAnimationTime);
+                }, 250); // Vitesse de la cascade (250ms entre chaque lettre)
 
             }, [currentGuess, targetWord, attempts, guesses, usedLetters, getGuessStatuses, isAnimating]);
 
@@ -245,10 +255,10 @@
             };
 
             const copyToClipboard = (type) => {
-                const day = Math.floor(Date.now() / 86400000) - 19700;
                 const grid = getEmojiGrid();
+                const day = Math.floor(Date.now() / 86400000) - 19700;
                 let text = (type === 'classic')
-                    ? `PROMPTLE #${day} ${lang.toUpperCase()}\n${gameState === 'won' ? attempts + 1 : 'X'}/6\n${grid}\n👉 promptle.netlify.app`
+                    ? `PROMPTLE #${day}\n${gameState === 'won' ? attempts + 1 : 'X'}/6\n${grid}\npromptle.netlify.app`
                     : grid;
 
                 const textArea = document.createElement("textarea");
@@ -263,106 +273,130 @@
             };
 
             const getLetterClass = (g, i, row) => {
+                // Ligne en cours de frappe
                 if (row === attempts && gameState === 'playing') {
-                    return currentGuess[i] ? "border-cyber-violet bg-cyber-darker text-white animate-pop" : "border-slate-800 bg-slate-900/40";
+                    return currentGuess[i]
+                        ? "border-cyber-violet bg-cyber-darker text-white animate-pop shadow-[0_0_10px_rgba(139,92,246,0.2)]"
+                        : "border-slate-800 bg-slate-900/40";
                 }
+
                 if (!g) return "border-slate-800 bg-slate-900/40";
+
+                // Gestion du reveal progressif
+                if (revealingRow === row) {
+                    const revealedInThisRow = revealedLetters[row] || 0;
+                    if (i >= revealedInThisRow) {
+                        return "border-slate-800 bg-slate-900/40";
+                    }
+                }
 
                 const rowStatuses = getGuessStatuses(g, targetWord);
                 const status = rowStatuses[i];
 
-                if (status === 'correct') return "animate-reveal-correct text-white";
-                if (status === 'present') return "animate-reveal-present text-white";
-                return "animate-reveal-absent text-slate-400";
+                if (status === 'correct') return "bg-cyber-violet border-cyber-violet text-white animate-reveal-correct";
+                if (status === 'present') return "bg-cyber-cyan border-cyber-cyan text-white animate-reveal-present";
+                return "bg-slate-700 border-slate-700 text-slate-400 animate-reveal-absent";
             };
 
             return (
-                <div className="flex flex-col h-full w-full p-4 md:p-8 pb-safe-extra relative">
-                    <header className="flex justify-between items-center mb-4 shrink-0">
+                <div className="flex flex-col h-screen w-full p-4 md:p-8 relative">
+                    {/* Header compact */}
+                    <header className="flex justify-between items-center mb-2 md:mb-4 shrink-0 max-w-2xl mx-auto w-full">
                         <div className="flex items-center gap-3">
-                            <div className="bg-cyber-violet p-1.5 rounded-xl shadow-lg shadow-cyber-violet/20"><Icons.Sparkles /></div>
+                            <div className="bg-cyber-violet p-1.5 rounded-lg shadow-lg shadow-cyber-violet/20"><Icons.Sparkles /></div>
                             <h1 className="text-xl md:text-2xl font-black tracking-tighter italic uppercase">PROMPTLE</h1>
                         </div>
-                        <div className="flex gap-3">
-                            <button onClick={() => setLang(lang === 'fr' ? 'en' : 'fr')} className="text-[10px] font-bold px-2 py-1 glass-panel rounded uppercase transition-colors hover:bg-white/10 tracking-widest">{lang}</button>
+                        <div className="flex gap-2">
+                            <button onClick={() => setLang(lang === 'fr' ? 'en' : 'fr')} className="text-[10px] font-bold px-2 py-1 glass-panel rounded uppercase text-slate-400">{lang}</button>
                             <div className="p-2 text-slate-500 cursor-pointer hover:text-white transition-colors"><Icons.Trophy /></div>
                         </div>
                     </header>
 
-                    {/* Image redimensionnée (Max-height pour libérer la grille) */}
-                    <div className="relative rounded-2xl md:rounded-3xl overflow-hidden aspect-video max-h-[25vh] md:max-h-[35vh] mb-4 md:mb-6 border border-white/5 shadow-2xl shrink-0 mx-auto w-full">
-                        <img src={dailyImage} className={`w-full h-full object-cover transition-all duration-1000 ${gameState !== 'playing' ? 'blur-lvl-4' : (['blur-lvl-0', 'blur-lvl-1', 'blur-lvl-2', 'blur-lvl-3', 'blur-lvl-4', 'blur-lvl-4', 'blur-lvl-4'][attempts])}`} />
-                        <div className="absolute inset-0 bg-gradient-to-t from-cyber-dark/80 via-transparent to-transparent"></div>
-                        <div className="absolute bottom-3 left-3 flex items-center gap-2">
-                            <span className="text-[9px] font-black tracking-widest uppercase bg-cyber-dark/80 backdrop-blur-md px-2 py-1 rounded-lg border border-white/10 text-cyber-cyan shadow-lg">
-                                <span className="inline-block w-1.5 h-1.5 bg-cyber-cyan rounded-full mr-1.5 animate-pulse"></span>
-                                {t.clue}
-                            </span>
+                    <div className="flex-1 flex flex-col justify-between max-w-2xl mx-auto w-full overflow-hidden">
+
+                        {/* Image principale - Taille optimisée */}
+                        <div className="relative rounded-2xl md:rounded-3xl overflow-hidden aspect-video border border-white/5 shadow-2xl shrink grow max-h-[40vh] mx-auto w-full">
+                            <img
+                                src={dailyImage}
+                                alt="Indice IA"
+                                className={`w-full h-full object-cover transition-all duration-1000 ${gameState !== 'playing' ? 'blur-lvl-4' : (['blur-lvl-0', 'blur-lvl-1', 'blur-lvl-2', 'blur-lvl-3', 'blur-lvl-4', 'blur-lvl-4', 'blur-lvl-4'][attempts])}`}
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-cyber-dark/90 via-transparent to-transparent"></div>
+                            <div className="absolute bottom-3 left-3">
+                                <span className="text-[10px] font-black tracking-widest uppercase bg-cyber-dark/80 backdrop-blur-md px-3 py-1 rounded-lg border border-white/10 text-cyber-cyan">
+                                    {t.clue}
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* Grille de jeu */}
+                        <div className="flex flex-col justify-center gap-2 md:gap-3 my-4 perspective-1000">
+                            {guesses.map((g, row) => (
+                                <div key={row} className="flex justify-center gap-1.5 md:gap-2.5">
+                                    {Array.from({length: targetWord.length}).map((_, i) => (
+                                        <div
+                                            key={`${row}-${i}`}
+                                            className={`w-11 h-11 sm:w-14 sm:h-14 md:w-16 md:h-16 border-2 rounded-xl md:rounded-2xl flex items-center justify-center text-xl md:text-2xl font-black transition-all ${getLetterClass(g, i, row)}`}
+                                        >
+                                            {(row === attempts ? currentGuess[i] : g[i]) || ''}
+                                        </div>
+                                    ))}
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Clavier compact pour libérer de l'espace */}
+                        <div className="grid gap-1.5 md:gap-2 mb-2 shrink-0">
+                            {KEYBOARD.map((row, i) => (
+                                <div key={i} className="flex justify-center gap-1 md:gap-2">
+                                    {row.map(k => {
+                                        const status = usedLetters[k];
+                                        const isSpecial = k === 'ENTER' || k === 'DELETE';
+                                        let style = "bg-slate-800 text-white";
+                                        if (status === 'absent') style = "bg-slate-950 text-slate-700 opacity-40";
+                                        if (status === 'present') style = "bg-cyber-cyan text-white";
+                                        if (status === 'correct') style = "bg-cyber-violet text-white";
+
+                                        let sizing = "h-11 sm:h-13 md:h-12 min-w-[28px] sm:min-w-[40px] md:min-w-[50px] px-1 md:px-4";
+                                        if (isSpecial) sizing = "h-11 sm:h-13 md:h-12 min-w-[60px] sm:min-w-[80px] md:min-w-[100px] px-2 md:px-4 bg-slate-700";
+
+                                        return (
+                                            <button
+                                                key={k}
+                                                onClick={() => onInput(k)}
+                                                className={`${sizing} rounded-lg md:rounded-xl font-bold text-[10px] md:text-sm active:scale-95 transition-all hover:bg-slate-600 ${style}`}
+                                            >
+                                                {k === 'DELETE' ? <Icons.Delete /> : k}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            ))}
                         </div>
                     </div>
 
-                    {/* Grille de jeu avec perspective pour le flip */}
-                    <div className="flex-1 flex flex-col justify-center gap-2 md:gap-3 mb-6 perspective-1000">
-                        {guesses.map((g, row) => (
-                            <div key={row} className="flex justify-center gap-1.5 md:gap-3">
-                                {Array.from({length: targetWord.length}).map((_, i) => (
-                                    <div
-                                        key={`${row}-${i}-${g}`}
-                                        className={`w-11 h-11 sm:w-14 sm:h-14 md:w-20 md:h-20 border-2 rounded-xl md:rounded-2xl flex items-center justify-center text-xl md:text-3xl font-black transition-all ${getLetterClass(g, i, row)} ${g ? `delay-${i}` : ''}`}
-                                    >
-                                        {(row === attempts ? currentGuess[i] : g[i]) || ''}
-                                    </div>
-                                ))}
-                            </div>
-                        ))}
-                    </div>
-
-                    {/* Clavier optimisé pour PC (hauteur réduite) */}
-                    <div className="grid gap-1.5 md:gap-2 mb-2 shrink-0">
-                        {KEYBOARD.map((row, i) => (
-                            <div key={i} className="flex justify-center gap-1 md:gap-2">
-                                {row.map(k => {
-                                    const status = usedLetters[k];
-                                    const isSpecial = k === 'ENTER' || k === 'DELETE';
-                                    let style = "bg-slate-800 text-white";
-                                    if (status === 'absent') style = "bg-slate-950 text-slate-700 opacity-40";
-                                    if (status === 'present') style = "bg-cyber-cyan text-white";
-                                    if (status === 'correct') style = "bg-cyber-violet text-white";
-
-                                    let sizing = "h-11 sm:h-14 md:h-14 min-w-[28px] sm:min-w-[42px] md:min-w-[55px] px-1 md:px-4";
-                                    if (isSpecial) sizing = "h-11 sm:h-14 md:h-14 min-w-[60px] sm:min-w-[85px] md:min-w-[110px] px-2 md:px-4 bg-slate-700";
-
-                                    return (
-                                        <button key={k} onClick={() => onInput(k)} className={`${sizing} rounded-lg md:rounded-xl font-bold text-[9px] md:text-base active:scale-95 transition-all hover:bg-slate-600 hover:shadow-lg ${style}`}>
-                                            {k === 'DELETE' ? "DEL" : k}
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        ))}
-                    </div>
-
+                    {/* Modale de fin */}
                     {gameState !== 'playing' && (
-                        <div className="fixed inset-0 bg-cyber-dark/95 backdrop-blur-xl z-50 flex items-center justify-center p-4 animate-in fade-in overflow-y-auto">
-                            <div className="glass-panel w-full max-w-md p-8 md:p-12 rounded-[2.5rem] text-center shadow-2xl relative my-auto">
-                                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-cyber-violet to-cyber-cyan"></div>
+                        <div className="fixed inset-0 bg-cyber-dark/95 backdrop-blur-xl z-50 flex items-center justify-center p-4">
+                            <div className="glass-panel w-full max-w-md p-8 md:p-10 rounded-[2.5rem] text-center shadow-2xl relative border-cyber-violet/20">
+                                <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-cyber-violet to-cyber-cyan"></div>
                                 <h2 className="text-3xl md:text-4xl font-black italic mb-2 uppercase tracking-tighter">
                                     {gameState === 'won' ? t.win : t.loss}
                                 </h2>
-                                <p className="text-slate-500 text-[10px] tracking-[0.3em] uppercase mb-8">
+                                <p className="text-slate-500 text-xs tracking-widest uppercase mb-8">
                                     {t.target} : <span className="text-white font-bold ml-2">{targetWord}</span>
                                 </p>
 
-                                <div className="bg-cyber-darker/50 p-6 rounded-3xl mb-8 border border-white/5 inline-block mx-auto">
+                                <div className="bg-cyber-darker/50 p-6 rounded-3xl mb-8 border border-white/5 inline-block mx-auto shadow-inner">
                                     <pre className="text-2xl leading-tight tracking-[0.4em] font-mono text-center">
                                         {getEmojiGrid()}
                                     </pre>
                                 </div>
 
-                                <div className="grid gap-4">
-                                    <button onClick={() => copyToClipboard('compact')} className={`w-full py-4 md:py-5 rounded-2xl font-black flex items-center justify-center gap-4 transition-all active:scale-95 border-2 text-base md:text-lg ${copyStatus === 'compact' ? 'bg-green-500 border-green-400 text-white' : 'bg-cyber-violet border-cyber-violet/30 text-white shadow-xl shadow-cyber-violet/20'}`}><Icons.Copy /> {copyStatus === 'compact' ? t.copied : t.shareCompact}</button>
-                                    <button onClick={() => copyToClipboard('classic')} className={`w-full py-4 md:py-5 rounded-2xl font-black flex items-center justify-center gap-4 transition-all active:scale-95 border-2 text-base md:text-lg ${copyStatus === 'classic' ? 'bg-green-500 border-green-400 text-white' : 'bg-white border-white text-cyber-dark'}`}><Icons.Share /> {copyStatus === 'classic' ? t.copied : t.shareClassic}</button>
-                                    <button onClick={() => window.location.reload()} className="w-full py-3 rounded-2xl font-bold flex items-center justify-center gap-3 transition-all text-slate-400 hover:text-white uppercase tracking-widest text-[10px]">{t.replay}</button>
+                                <div className="grid gap-3">
+                                    <button onClick={() => copyToClipboard('compact')} className={`w-full py-4 rounded-2xl font-black flex items-center justify-center gap-4 transition-all active:scale-95 border-2 ${copyStatus === 'compact' ? 'bg-green-500 border-green-400 text-white' : 'bg-cyber-violet border-cyber-violet/30 text-white shadow-lg shadow-cyber-violet/20'}`}><Icons.Copy /> {copyStatus === 'compact' ? t.copied : t.shareCompact}</button>
+                                    <button onClick={() => copyToClipboard('classic')} className={`w-full py-4 rounded-2xl font-black flex items-center justify-center gap-4 transition-all active:scale-95 border-2 ${copyStatus === 'classic' ? 'bg-green-500 border-green-400 text-white' : 'bg-white border-white text-cyber-dark'}`}><Icons.Share /> {copyStatus === 'classic' ? t.copied : t.shareClassic}</button>
+                                    <button onClick={() => window.location.reload()} className="w-full py-3 text-slate-400 font-bold hover:text-white transition-colors text-xs tracking-widest uppercase">{t.replay}</button>
                                 </div>
                             </div>
                         </div>
