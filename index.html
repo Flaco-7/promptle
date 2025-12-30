@@ -53,7 +53,6 @@
         }
         .pb-safe-extra { padding-bottom: calc(env(safe-area-inset-bottom) + 15px); }
 
-        /* Classes de flou progressif */
         .blur-lvl-0 { filter: blur(35px) grayscale(100%); }
         .blur-lvl-1 { filter: blur(20px) grayscale(70%); }
         .blur-lvl-2 { filter: blur(10px) grayscale(40%); }
@@ -67,29 +66,26 @@
     <script type="text/babel">
         const { useState, useEffect, useCallback, useMemo } = React;
 
-        // --- ICONES SVG ---
         const Icons = {
             Sparkles: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>,
             Trophy: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>,
             Share: () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>,
             Copy: () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>,
             Delete: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 5H9l-7 7 7 7h11a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Z"/><line x1="18" y1="9" x2="12" y2="15"/><line x1="12" y1="9" x2="18" y2="15"/></svg>,
-            Refresh: () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>,
-            User: () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            Refresh: () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
         };
 
-        // --- TRADUCTIONS ---
         const TRANSLATIONS = {
             fr: {
                 clue: "MISE AU POINT", win: "PRÉDICTION RÉUSSIE", loss: "SIGNAL PERDU",
                 shareClassic: "PARTAGER LE LIEN", shareCompact: "COPIER EMOJIS (TIKTOK)",
-                copied: "COPIÉ !", replay: "NOUVEAU CYCLE", target: "MOT DU JOUR", agent: "AGENT",
+                copied: "COPIÉ !", replay: "NOUVEAU CYCLE", target: "MOT DU JOUR",
                 legendCorrect: "Correct", legendPresent: "Mal placé", legendAbsent: "Absent"
             },
             en: {
                 clue: "ADJUSTING FOCUS", win: "PREDICTION SUCCESS", loss: "SIGNAL LOST",
                 shareClassic: "SHARE LINK", shareCompact: "COPY EMOJIS (TIKTOK)",
-                copied: "COPIED!", replay: "NEW CYCLE", target: "TARGET WORD", agent: "AGENT",
+                copied: "COPIED!", replay: "NEW CYCLE", target: "TARGET WORD",
                 legendCorrect: "Correct", legendPresent: "Present", legendAbsent: "Absent"
             }
         };
@@ -97,9 +93,8 @@
         const MAX_ATTEMPTS = 6;
         const KEYBOARD = [['A','Z','E','R','T','Y','U','I','O','P'],['Q','S','D','F','G','H','J','K','L','M'],['ENTER','W','X','C','V','B','N','DELETE']];
 
-        // --- CONFIGURATION SUPABASE (A REMPLIR) ---
-        const SUPABASE_URL = "https://jxbtymcfsqxshmvanrbr.supabase.co"; // Ton URL Supabase
-        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp4YnR5bWNmc3F4c2htdmFucmJyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcwMjAxMzUsImV4cCI6MjA4MjU5NjEzNX0.5hjR_k9Mz3SElQgqiLiHOwqgespnKmvm05X4IuQStfI"; // Ta clé publique anon
+        const SUPABASE_URL = "https://jxbtymcfsqxshmvanrbr.supabase.co";
+        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp4YnR5bWNmc3F4c2htdmFucmJyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcwMjAxMzUsImV4cCI6MjA4MjU5NjEzNX0.5hjR_k9Mz3SElQgqiLiHOwqgespnKmvm05X4IuQStfI";
 
         function App() {
             const [lang, setLang] = useState('fr');
@@ -111,57 +106,72 @@
             const [dailyImage, setDailyImage] = useState('https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&q=80&w=800');
             const [usedLetters, setUsedLetters] = useState({});
             const [copyStatus, setCopyStatus] = useState(null);
-            const [username, setUsername] = useState(localStorage.getItem('promptle_username') || '');
 
             const t = TRANSLATIONS[lang];
 
-            // Chargement dynamique depuis Supabase
             useEffect(() => {
                 const fetchDailyChallenge = async () => {
                     if (!SUPABASE_URL) return;
                     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
                     const today = new Date().toISOString().split('T')[0];
-
-                    const { data, error } = await supabase
-                        .from('daily_challenges')
-                        .select('*')
-                        .eq('publish_date', today)
-                        .maybeSingle();
-
+                    const { data } = await supabase.from('daily_challenges').select('*').eq('publish_date', today).maybeSingle();
                     if (data) {
-                        if (lang === 'en' && data.word_en) {
-                            setTargetWord(data.word_en.toUpperCase());
-                            setDailyImage(data.image_url_en || data.image_url);
-                        } else {
-                            setTargetWord(data.word.toUpperCase());
-                            setDailyImage(data.image_url);
-                        }
+                        const word = (lang === 'en' && data.word_en) ? data.word_en : data.word;
+                        setTargetWord(word.toUpperCase());
+                        setDailyImage((lang === 'en' && data.image_url_en) ? data.image_url_en : data.image_url);
                     }
                 };
                 fetchDailyChallenge();
             }, [lang]);
 
-            // Calcul du niveau de flou (Progressive Blur)
+            // --- ALGORITHME DE VÉRIFICATION (Correction Doublons) ---
+            const getGuessStatuses = useCallback((guess, target) => {
+                if (!guess) return Array(target.length).fill('empty');
+                const statuses = Array(target.length).fill('absent');
+                const targetCounts = {};
+
+                // Pass 1: Marquer les corrects (Verts)
+                for (let i = 0; i < target.length; i++) {
+                    targetCounts[target[i]] = (targetCounts[target[i]] || 0) + 1;
+                    if (guess[i] === target[i]) {
+                        statuses[i] = 'correct';
+                        targetCounts[target[i]]--;
+                    }
+                }
+
+                // Pass 2: Marquer les présents (Jaunes) si stock disponible
+                for (let i = 0; i < target.length; i++) {
+                    if (statuses[i] === 'correct') continue;
+                    const letter = guess[i];
+                    if (targetCounts[letter] > 0) {
+                        statuses[i] = 'present';
+                        targetCounts[letter]--;
+                    }
+                }
+                return statuses;
+            }, []);
+
             const blurClass = useMemo(() => {
                 if (gameState !== 'playing') return 'blur-lvl-4';
-                if (attempts === 0) return 'blur-lvl-0'; // 35px
-                if (attempts === 1) return 'blur-lvl-1'; // 20px
-                if (attempts === 2) return 'blur-lvl-2'; // 12px
-                if (attempts === 3) return 'blur-lvl-3'; // 5px
-                return 'blur-lvl-4'; // 0px
+                const levels = ['blur-lvl-0', 'blur-lvl-1', 'blur-lvl-2', 'blur-lvl-3', 'blur-lvl-4', 'blur-lvl-4', 'blur-lvl-4'];
+                return levels[attempts] || 'blur-lvl-4';
             }, [attempts, gameState]);
 
             const submitGuess = useCallback(() => {
                 if (currentGuess.length !== targetWord.length) return;
+
+                const statuses = getGuessStatuses(currentGuess, targetWord);
                 const newGuesses = [...guesses];
                 newGuesses[attempts] = currentGuess;
                 setGuesses(newGuesses);
 
+                // Mise à jour du clavier
                 const newUsed = {...usedLetters};
                 currentGuess.split('').forEach((l, i) => {
-                    if (targetWord[i] === l) newUsed[l] = 'correct';
-                    else if (targetWord.includes(l) && newUsed[l] !== 'correct') newUsed[l] = 'present';
-                    else if (!targetWord.includes(l) && !newUsed[l]) newUsed[l] = 'absent';
+                    const status = statuses[i];
+                    if (status === 'correct') newUsed[l] = 'correct';
+                    else if (status === 'present' && newUsed[l] !== 'correct') newUsed[l] = 'present';
+                    else if (status === 'absent' && !newUsed[l]) newUsed[l] = 'absent';
                 });
                 setUsedLetters(newUsed);
 
@@ -171,15 +181,16 @@
                     setAttempts(prev => prev + 1);
                     setCurrentGuess('');
                 }
-            }, [currentGuess, targetWord, attempts, guesses, usedLetters]);
+            }, [currentGuess, targetWord, attempts, guesses, usedLetters, getGuessStatuses]);
 
             const getEmojiGrid = () => {
                 return guesses.slice(0, gameState === 'won' ? attempts + 1 : MAX_ATTEMPTS)
                     .map(g => {
                         if (!g) return "";
-                        return g.split('').map((l, i) => {
-                            if (targetWord[i] === l) return "🟪";
-                            if (targetWord.includes(l)) return "🟦";
+                        const rowStatuses = getGuessStatuses(g, targetWord);
+                        return rowStatuses.map(s => {
+                            if (s === 'correct') return "🟪";
+                            if (s === 'present') return "🟦";
                             return "⬛";
                         }).join('');
                     }).filter(x => x).join('\n');
@@ -188,11 +199,9 @@
             const copyToClipboard = (type) => {
                 const day = Math.floor(Date.now() / 86400000) - 19700;
                 const grid = getEmojiGrid();
-                let text = grid;
-
-                if (type === 'classic') {
-                    text = `PROMPTLE #${day} ${lang.toUpperCase()}\n${gameState === 'won' ? attempts + 1 : 'X'}/6\n${grid}\n👉 promptle.netlify.app`;
-                }
+                let text = (type === 'classic')
+                    ? `PROMPTLE #${day} ${lang.toUpperCase()}\n${gameState === 'won' ? attempts + 1 : 'X'}/6\n${grid}\n👉 promptle.netlify.app`
+                    : grid;
 
                 const textArea = document.createElement("textarea");
                 textArea.value = text;
@@ -206,11 +215,16 @@
             };
 
             const getLetterStyle = (g, i, row) => {
-                if (row === attempts && gameState === 'playing') return currentGuess[i] ? "border-cyber-violet bg-cyber-darker text-white animate-pop" : "border-slate-800 bg-slate-900/40";
+                if (row === attempts && gameState === 'playing') {
+                    return currentGuess[i] ? "border-cyber-violet bg-cyber-darker text-white animate-pop" : "border-slate-800 bg-slate-900/40";
+                }
                 if (!g) return "border-slate-800 bg-slate-900/40";
-                const l = g[i];
-                if (targetWord[i] === l) return "bg-cyber-violet border-cyber-violet text-white animate-reveal";
-                if (targetWord.includes(l)) return "bg-cyber-cyan border-cyber-cyan text-white animate-reveal";
+
+                const rowStatuses = getGuessStatuses(g, targetWord);
+                const status = rowStatuses[i];
+
+                if (status === 'correct') return "bg-cyber-violet border-cyber-violet text-white animate-reveal";
+                if (status === 'present') return "bg-cyber-cyan border-cyber-cyan text-white animate-reveal";
                 return "bg-slate-800 border-slate-800 text-slate-500 opacity-40 animate-reveal";
             };
 
@@ -258,6 +272,8 @@
                                     const isSpecial = k === 'ENTER' || k === 'DELETE';
                                     let style = "bg-slate-800 text-white";
                                     if (status === 'absent') style = "bg-slate-950 text-slate-700 opacity-40";
+                                    if (status === 'present') style = "bg-cyber-cyan text-white";
+                                    if (status === 'correct') style = "bg-cyber-violet text-white";
                                     if (isSpecial) style = "bg-slate-700 px-4 min-w-[65px] md:min-w-[80px]";
                                     return (
                                         <button key={k} onClick={() => {
@@ -273,7 +289,6 @@
                         ))}
                     </div>
 
-                    {/* LÉGENDE DES COULEURS */}
                     <div className="flex justify-center gap-4 md:gap-8 py-2 border-t border-white/5 mt-2">
                         <div className="flex items-center gap-2">
                             <div className="w-3 h-3 rounded-full bg-cyber-violet shadow-[0_0_8px_rgba(139,92,246,0.6)]"></div>
@@ -307,26 +322,9 @@
                                 </div>
 
                                 <div className="space-y-3">
-                                    <button
-                                        onClick={() => copyToClipboard('compact')}
-                                        className={`w-full py-4 rounded-2xl font-black flex items-center justify-center gap-3 transition-all active:scale-95 border-2 ${copyStatus === 'compact' ? 'bg-green-500 border-green-400 text-white' : 'bg-cyber-violet border-cyber-violet/30 text-white shadow-lg shadow-cyber-violet/20'}`}
-                                    >
-                                        <Icons.Copy /> {copyStatus === 'compact' ? t.copied : t.shareCompact}
-                                    </button>
-
-                                    <button
-                                        onClick={() => copyToClipboard('classic')}
-                                        className={`w-full py-4 rounded-2xl font-black flex items-center justify-center gap-3 transition-all active:scale-95 border-2 ${copyStatus === 'classic' ? 'bg-green-500 border-green-400 text-white' : 'bg-white border-white text-cyber-dark'}`}
-                                    >
-                                        <Icons.Share /> {copyStatus === 'classic' ? t.copied : t.shareClassic}
-                                    </button>
-
-                                    <button
-                                        onClick={() => window.location.reload()}
-                                        className="w-full py-3 rounded-2xl font-bold flex items-center justify-center gap-3 transition-all text-slate-400 hover:text-white"
-                                    >
-                                        <Icons.Refresh /> {t.replay}
-                                    </button>
+                                    <button onClick={() => copyToClipboard('compact')} className={`w-full py-4 rounded-2xl font-black flex items-center justify-center gap-3 transition-all active:scale-95 border-2 ${copyStatus === 'compact' ? 'bg-green-500 border-green-400 text-white' : 'bg-cyber-violet border-cyber-violet/30 text-white shadow-lg shadow-cyber-violet/20'}`}><Icons.Copy /> {copyStatus === 'compact' ? t.copied : t.shareCompact}</button>
+                                    <button onClick={() => copyToClipboard('classic')} className={`w-full py-4 rounded-2xl font-black flex items-center justify-center gap-3 transition-all active:scale-95 border-2 ${copyStatus === 'classic' ? 'bg-green-500 border-green-400 text-white' : 'bg-white border-white text-cyber-dark'}`}><Icons.Share /> {copyStatus === 'classic' ? t.copied : t.shareClassic}</button>
+                                    <button onClick={() => window.location.reload()} className="w-full py-3 rounded-2xl font-bold flex items-center justify-center gap-3 transition-all text-slate-400 hover:text-white"><Icons.Refresh /> {t.replay}</button>
                                 </div>
                             </div>
                         </div>
@@ -334,7 +332,6 @@
                 </div>
             );
         }
-
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
     </script>
