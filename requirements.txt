@@ -1,1 +1,5 @@
-openai supabase requests python-dotenv Pillow
+openai
+supabase
+requests
+python-dotenv
+Pillow
